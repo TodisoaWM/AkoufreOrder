@@ -1,6 +1,6 @@
 import { Commande, StockEntree, StatVente, RotationProduit, SuggestionCommande } from '../types';
 
-const BASE_URL = 'http://localhost:3001/api';
+const BASE_URL = 'http://localhost:3000/api';
 
 async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
