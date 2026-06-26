@@ -31,7 +31,7 @@ router.get('/ventes', async (_req: Request, res: Response) => {
 
     const data = Object.entries(venteParJour).map(([date, total]) => {
       const d = new Date(date);
-      return { date, jour: jours[d.getDay()], total };
+      return { date, jour: jours[d.getDay()], totalUnites: total };
     });
 
     res.json(data);

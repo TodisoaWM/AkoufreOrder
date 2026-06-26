@@ -80,11 +80,12 @@ export default function StatsScreen() {
             <View style={styles.chartCard}>
               <View style={styles.chartBars}>
                 {ventes.map((v, i) => {
-                  const heightPct = (v.totalUnites / maxVentes) * 100;
-                  const isMax = v.totalUnites === maxVentes;
+                  const valeur = Number.isFinite(v.totalUnites) ? v.totalUnites : 0;
+                  const heightPct = Math.max(0, Math.min(100, (valeur / maxVentes) * 100));
+                  const isMax = valeur === maxVentes;
                   return (
                     <View key={i} style={styles.barWrapper}>
-                      <Text style={styles.barValue}>{v.totalUnites}</Text>
+                      <Text style={styles.barValue}>{valeur}</Text>
                       <View style={styles.barTrack}>
                         <View
                           style={[
@@ -92,7 +93,7 @@ export default function StatsScreen() {
                             {
                               height: `${heightPct}%` as any,
                               backgroundColor: isMax ? '#1a0533' : '#7F77DD',
-                              opacity: isMax ? 1 : 0.4 + heightPct / 200,
+                              opacity: isMax ? 1 : Math.max(0.4, Math.min(1, 0.4 + heightPct / 200)),
                             },
                           ]}
                         />
