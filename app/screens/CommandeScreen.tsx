@@ -11,8 +11,7 @@ import {
 } from 'react-native';
 import CategoryAccordion from '../components/CategoryAccordion';
 import SummaryCard from '../components/SummaryCard';
-import { getCategories, getProduitsByCategorie } from '../data/produits';
-import { PRODUITS } from '../data/produits';
+import { getCategories, getProduitsByCategorie, PRODUITS } from '../data/produits';
 import { calculerQuantite, getPeriodeInfo, formatDate } from '../services/algorithm';
 import { saveCommande } from '../services/api';
 import { TabName } from '../types';
@@ -30,12 +29,10 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
   const categories = getCategories();
 
   useEffect(() => {
-    // Pre-fill with algorithm suggestions using mock moyenneJour values
     const initialQty: Record<string, number> = {};
     const hints: Record<string, string> = {};
 
     PRODUITS.forEach((p) => {
-      // Mock values — in production these come from backend
       const moyenneJournaliere = Math.round(Math.random() * 60 + 10);
       const stockActuel = Math.round(Math.random() * 20);
       const stockSecurite = 5;
@@ -109,14 +106,19 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor="#F7F6FC" />
 
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => onNavigate('Stock')}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Commande du jour</Text>
-      </View>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header scrollable */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => onNavigate('Stock')}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Commande du jour</Text>
+        </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <SummaryCard
           totalUnites={totalUnites}
           dateLivraison={formatDate(periodeInfo.dateLivraison)}
@@ -136,9 +138,10 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
           />
         ))}
 
-        <View style={{ height: 120 }} />
+        <View style={{ height: 16 }} />
       </ScrollView>
 
+      {/* Bouton fixe en bas */}
       <View style={styles.bottomBar}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
@@ -175,6 +178,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F0EEF8',
+    marginBottom: 12,
   },
   backBtn: {
     width: 36,
@@ -199,18 +203,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F0EEF8',
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   totalRow: {
     flexDirection: 'row',

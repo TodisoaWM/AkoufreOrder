@@ -117,7 +117,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 16 }} />
       </ScrollView>
     </View>
   );

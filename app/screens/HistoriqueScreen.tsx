@@ -89,11 +89,6 @@ export default function HistoriqueScreen(_props: HistoriqueScreenProps) {
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor="#F7F6FC" />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Historique</Text>
-        <Text style={styles.headerSub}>{commandes.length} commandes</Text>
-      </View>
-
       {loading ? (
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#7F77DD" />
@@ -107,13 +102,19 @@ export default function HistoriqueScreen(_props: HistoriqueScreenProps) {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Historique</Text>
+              <Text style={styles.headerSub}>{commandes.length} commandes</Text>
+            </View>
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>📋</Text>
               <Text style={styles.emptyText}>Aucune commande enregistrée.</Text>
             </View>
           }
-          ListFooterComponent={<View style={{ height: 100 }} />}
+          ListFooterComponent={<View style={{ height: 16 }} />}
         />
       )}
 
@@ -184,6 +185,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F0EEF8',
+    marginBottom: 12,
   },
   headerTitle: {
     fontSize: 22,
@@ -202,7 +204,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingTop: 12,
+    paddingTop: 0,
   },
   empty: {
     alignItems: 'center',

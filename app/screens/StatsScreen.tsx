@@ -63,17 +63,18 @@ export default function StatsScreen() {
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor="#F7F6FC" />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Statistiques</Text>
-        <Text style={styles.headerSub}>7 derniers jours</Text>
-      </View>
-
       {loading ? (
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#7F77DD" />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Header scrollable */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Statistiques</Text>
+            <Text style={styles.headerSub}>7 derniers jours</Text>
+          </View>
+
           {/* Bar chart */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Volume de ventes (7 jours)</Text>

@@ -65,18 +65,22 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor="#F7F6FC" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => onNavigate('Accueil')}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Stock fin de journée</Text>
-          <Text style={styles.headerDate}>{today}</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header scrollable */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => onNavigate('Accueil')}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Stock fin de journée</Text>
+            <Text style={styles.headerDate}>{today}</Text>
+          </View>
         </View>
-      </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <AlertBanner
           message="Saisissez les quantités restantes en stock."
           variant="info"
@@ -94,10 +98,10 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
           />
         ))}
 
-        <View style={{ height: 120 }} />
+        <View style={{ height: 16 }} />
       </ScrollView>
 
-      {/* Bottom button */}
+      {/* Bouton fixe en bas */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={[styles.calcButton, loading && styles.calcButtonDisabled]}
@@ -130,6 +134,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F0EEF8',
+    marginBottom: 12,
   },
   backBtn: {
     width: 36,
@@ -163,18 +168,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F0EEF8',
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   calcButton: {
     backgroundColor: '#7F77DD',

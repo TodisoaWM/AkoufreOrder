@@ -7,13 +7,6 @@ interface FooterNavProps {
   onTabPress: (tab: TabName) => void;
 }
 
-const COLORS = {
-  dark: '#1a0533',
-  gold: '#EF9F27',
-  inactive: 'rgba(255,255,255,0.4)',
-  active: '#FFFFFF',
-};
-
 interface TabItem {
   name: TabName;
   icon: string;
@@ -24,7 +17,7 @@ interface TabItem {
 const TABS: TabItem[] = [
   { name: 'Accueil', icon: '🏠', label: 'Accueil' },
   { name: 'Stock', icon: '📦', label: 'Stock' },
-  { name: 'Commande', icon: '🛒', label: 'COMMANDE', isCentral: true },
+  { name: 'Commande', icon: '🛒', label: 'Commande', isCentral: true },
   { name: 'Historique', icon: '📋', label: 'Historique' },
   { name: 'Stats', icon: '📊', label: 'Stats' },
 ];
@@ -34,20 +27,25 @@ export default function FooterNav({ activeTab, onTabPress }: FooterNavProps) {
     <View style={styles.wrapper}>
       <View style={styles.container}>
         {TABS.map((tab) => {
+          const isActive = activeTab === tab.name;
+
           if (tab.isCentral) {
             return (
-              <TouchableOpacity
-                key={tab.name}
-                style={styles.centralButton}
-                onPress={() => onTabPress(tab.name)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.centralIcon}>{tab.icon}</Text>
-              </TouchableOpacity>
+              <View key={tab.name} style={styles.centralWrapper}>
+                <TouchableOpacity
+                  style={styles.centralButton}
+                  onPress={() => onTabPress(tab.name)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.centralIcon}>{tab.icon}</Text>
+                </TouchableOpacity>
+                <Text style={[styles.tabLabel, { color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.4)' }]}>
+                  {tab.label}
+                </Text>
+              </View>
             );
           }
 
-          const isActive = activeTab === tab.name;
           return (
             <TouchableOpacity
               key={tab.name}
@@ -56,7 +54,7 @@ export default function FooterNav({ activeTab, onTabPress }: FooterNavProps) {
               activeOpacity={0.7}
             >
               <Text style={[styles.tabIcon, { opacity: isActive ? 1 : 0.4 }]}>{tab.icon}</Text>
-              <Text style={[styles.tabLabel, { color: isActive ? COLORS.active : COLORS.inactive }]}>
+              <Text style={[styles.tabLabel, { color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.4)' }]}>
                 {tab.label}
               </Text>
               {isActive && <View style={styles.activeDot} />}
@@ -70,14 +68,10 @@ export default function FooterNav({ activeTab, onTabPress }: FooterNavProps) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     paddingHorizontal: 16,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-    backgroundColor: 'transparent',
-    pointerEvents: 'box-none',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
+    paddingTop: 20,
+    backgroundColor: '#F7F6FC',
   },
   container: {
     flexDirection: 'row',
@@ -85,18 +79,18 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingVertical: 10,
     paddingHorizontal: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: 'flex-end',
+    shadowColor: '#1a0533',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 16,
     elevation: 12,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
+    justifyContent: 'flex-end',
+    paddingBottom: 4,
   },
   tabIcon: {
     fontSize: 22,
@@ -113,23 +107,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF9F27',
     marginTop: 3,
   },
+  centralWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 4,
+  },
   centralButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#EF9F27',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -28,
+    marginTop: -40,
     borderWidth: 4,
     borderColor: '#1a0533',
     shadowColor: '#EF9F27',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.55,
+    shadowRadius: 10,
+    elevation: 10,
   },
   centralIcon: {
-    fontSize: 24,
+    fontSize: 26,
   },
 });
