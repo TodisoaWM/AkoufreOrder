@@ -37,18 +37,6 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor="#1a0533" />
 
-      {/* Hero zone */}
-      <View style={styles.hero}>
-        <Text style={styles.greeting}>Bonjour,</Text>
-        <Text style={styles.shopName}>Akoufré Ambanidia — Echoppe</Text>
-        <HeroCard
-          totalUnites={302}
-          labelPeriode={periodeInfo.label}
-          dateLivraison={formatDate(periodeInfo.dateLivraison)}
-          coefficient={periodeInfo.coefficient}
-        />
-      </View>
-
       {/* Content zone */}
       <ScrollView
         style={styles.content}
@@ -56,6 +44,18 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7F77DD" />}
       >
+        {/* Hero zone — scrolls with content */}
+        <View style={styles.hero}>
+          <Text style={styles.greeting}>Bonjour,</Text>
+          <Text style={styles.shopName}>Akoufré Ambanidia — Echoppe</Text>
+          <HeroCard
+            totalUnites={302}
+            labelPeriode={periodeInfo.label}
+            dateLivraison={formatDate(periodeInfo.dateLivraison)}
+            coefficient={periodeInfo.coefficient}
+          />
+        </View>
+
         {isWeekend && (
           <AlertBanner
             message="Commande week-end — quantités augmentées."
@@ -150,8 +150,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentInner: {
-    padding: 16,
-    paddingTop: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   sectionTitle: {
     fontSize: 15,
