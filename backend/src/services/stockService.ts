@@ -1,7 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Produit, StockEntree } from '@prisma/client';
 import { mettreAJourMoyenne } from './algorithmService';
 
 const prisma = new PrismaClient();
+
+type ProduitAvecStock = Produit & { stockEntrees: StockEntree[] };
 
 export async function sauvegarderStock(entrees: { produitId: number; quantite: number }[]) {
   const result = await prisma.$transaction(
@@ -12,11 +14,11 @@ export async function sauvegarderStock(entrees: { produitId: number; quantite: n
 }
 
 export async function getDernierStock() {
-  const produits = await prisma.produit.findMany({
+  const produits: ProduitAvecStock[] = await prisma.produit.findMany({
     include: { stockEntrees: { orderBy: { date: 'desc' }, take: 1 } },
     orderBy: { categorie: 'asc' },
   });
-  return produits.map((p) => ({
+  return produits.map((p: ProduitAvecStock) => ({
     id: p.id,
     code: p.code,
     article: p.article,
@@ -29,8 +31,10 @@ export async function getDernierStock() {
 }
 
 export async function getStockCritique() {
-  const produits = await prisma.produit.findMany({ include: { stockEntrees: { orderBy: { date: 'desc' }, take: 1 } } });
-  return produits.filter((p) => {
+  const produits: ProduitAvecStock[] = await prisma.produit.findMany({
+    include: { stockEntrees: { orderBy: { date: 'desc' }, take: 1 } },
+  });
+  return produits.filter((p: ProduitAvecStock) => {
     const stock = p.stockEntrees[0]?.quantite ?? 0;
     return stock <= p.stockSecurite && p.stockSecurite > 0;
   });
