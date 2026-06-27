@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { appliquerRegles } from './reglesProduits';
 
 const prisma = new PrismaClient();
 
@@ -177,6 +178,9 @@ export async function calculerSuggestion(dateLivraison?: Date) {
       coefficient,
     };
   });
+
+  // Application des règles métier par produit (exclusions, plafonds, plancher, TÊTE = ½ PATTES…)
+  appliquerRegles(lignes);
 
   const totalUnites = Math.round(lignes.reduce((s, l) => s + l.quantite, 0) * 100) / 100;
   return { lignes, totalUnites, coefficient, joursACouvrir, label, dateLivraison: liv.toISOString() };
