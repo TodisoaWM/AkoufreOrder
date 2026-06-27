@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import CategoryAccordion from '../components/CategoryAccordion';
 import SummaryCard from '../components/SummaryCard';
+import AlertBanner from '../components/AlertBanner';
 import { getCategories, getProduitsByCategorie, PRODUITS } from '../data/produits';
 import {
   calculerQuantite,
@@ -40,6 +40,8 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
   const [formulaHints, setFormulaHints] = useState<Record<string, string>>({});
   const [bases, setBases] = useState<Record<string, BaseProduit>>({});
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [feedback, setFeedback] = useState<{ variant: 'success' | 'error' | 'warning'; message: string } | null>(null);
   // Date de livraison ciblée — par défaut la prochaine livraison régulière
   const [dateLivraison, setDateLivraison] = useState<Date>(() => getPeriodeInfo(new Date()).dateLivraison);
 
@@ -88,59 +90,66 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
 
   const handleChangeValue = (code: string, value: number) => {
     setQuantities((prev) => ({ ...prev, [code]: value }));
+    if (confirming) setConfirming(false);
+    if (feedback) setFeedback(null);
   };
 
   const reculerLivraison = () => {
     if (peutReculer) setDateLivraison((prev) => livraisonPrecedente(prev));
+    setConfirming(false);
+    setFeedback(null);
   };
   const avancerLivraison = () => {
     setDateLivraison((prev) => livraisonSuivanteReguliere(prev));
+    setConfirming(false);
+    setFeedback(null);
   };
   const estLivraisonParDefaut = dateLivraison.getTime() === livraisonMin.getTime();
 
   const totalUnites = Object.values(quantities).reduce((s, v) => s + v, 0);
 
-  const handleValider = async () => {
-    Alert.alert(
-      'Confirmer la commande',
-      `Envoyer ${formatKg(totalUnites)} kg sur AkoufréNET ?`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Confirmer',
-          style: 'default',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const lignes = PRODUITS.map((p) => ({
-                produit: p,
-                quantite: quantities[p.code] || 0,
-                stock: 0,
-                moyenneJour: 0,
-                formulaHint: formulaHints[p.code] || '',
-              })).filter((l) => l.quantite > 0);
+  // Confirmation en deux temps + retour visuel intégré (Alert ne marche pas sur le web)
+  const handleValider = () => {
+    if (totalUnites <= 0) {
+      setFeedback({ variant: 'warning', message: 'Aucune quantité à envoyer.' });
+      return;
+    }
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    envoyerCommande();
+  };
 
-              await saveCommande({
-                dateCommande: new Date().toISOString(),
-                dateLivraison: periodeInfo.dateLivraison.toISOString(),
-                statut: 'Soumis',
-                coefficient: periodeInfo.coefficient,
-                totalUnites,
-                lignes,
-              });
+  const envoyerCommande = async () => {
+    setConfirming(false);
+    setLoading(true);
+    setFeedback(null);
+    try {
+      const lignes = PRODUITS.map((p) => ({
+        produit: p,
+        quantite: quantities[p.code] || 0,
+        stock: 0,
+        moyenneJour: 0,
+        formulaHint: formulaHints[p.code] || '',
+      })).filter((l) => l.quantite > 0);
 
-              Alert.alert('Succès', 'Commande envoyée sur AkoufréNET.', [
-                { text: 'OK', onPress: () => onNavigate('Historique') },
-              ]);
-            } catch (err) {
-              Alert.alert('Erreur', 'Impossible d\'envoyer la commande. Vérifiez la connexion.');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
+      await saveCommande({
+        dateCommande: new Date().toISOString(),
+        dateLivraison: periodeInfo.dateLivraison.toISOString(),
+        statut: 'Soumis',
+        coefficient: periodeInfo.coefficient,
+        totalUnites,
+        lignes,
+      });
+
+      setFeedback({ variant: 'success', message: 'Commande envoyée sur AkoufréNET ✅' });
+      setTimeout(() => onNavigate('Historique'), 1200);
+    } catch (err) {
+      setFeedback({ variant: 'error', message: 'Impossible d\'envoyer la commande. Vérifiez la connexion.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -193,6 +202,8 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
           labelPeriode={periodeInfo.label}
         />
 
+        {feedback && <AlertBanner message={feedback.message} variant={feedback.variant} />}
+
         {categories.map((cat, index) => (
           <CategoryAccordion
             key={cat}
@@ -215,7 +226,11 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
           <Text style={styles.totalValue}>{formatKg(totalUnites)} kg</Text>
         </View>
         <TouchableOpacity
-          style={[styles.sendButton, loading && styles.sendButtonDisabled]}
+          style={[
+            styles.sendButton,
+            confirming && styles.sendButtonConfirm,
+            loading && styles.sendButtonDisabled,
+          ]}
           onPress={handleValider}
           activeOpacity={0.85}
           disabled={loading}
@@ -223,9 +238,18 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.sendButtonText}>Valider et envoyer sur AkoufréNET</Text>
+            <Text style={styles.sendButtonText}>
+              {confirming
+                ? `Confirmer l'envoi de ${formatKg(totalUnites)} kg`
+                : 'Valider et envoyer sur AkoufréNET'}
+            </Text>
           )}
         </TouchableOpacity>
+        {confirming && !loading && (
+          <TouchableOpacity onPress={() => setConfirming(false)} activeOpacity={0.7} style={styles.cancelBtn}>
+            <Text style={styles.cancelBtnText}>Annuler</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -369,6 +393,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  sendButtonConfirm: {
+    backgroundColor: '#5DCAA5',
+    shadowColor: '#5DCAA5',
+  },
   sendButtonDisabled: {
     opacity: 0.6,
   },
@@ -376,5 +404,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  cancelBtn: {
+    marginTop: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    color: '#9A97B0',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

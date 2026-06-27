@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Alert,
   ActivityIndicator,
   Modal,
 } from 'react-native';
@@ -28,6 +27,9 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
   const [histoLoading, setHistoLoading] = useState(false);
   const [historique, setHistorique] = useState<StockHistoriqueJour[]>([]);
   const [jourOuvert, setJourOuvert] = useState<string | null>(null);
+  // Retour visuel intégré (Alert ne fonctionne pas sur le web)
+  const [feedback, setFeedback] = useState<{ variant: 'success' | 'error' | 'warning'; message: string } | null>(null);
+  const [stockEnregistre, setStockEnregistre] = useState(false);
   // Date du stock — pré-remplie avec aujourd'hui, modifiable (ex : pesage fait le lendemain)
   const [stockDate, setStockDate] = useState(() => {
     const d = new Date();
@@ -61,6 +63,11 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
 
   const handleChangeValue = (code: string, value: number) => {
     setStockValues((prev) => ({ ...prev, [code]: value }));
+    // Toute modification annule le message de confirmation précédent
+    if (feedback || stockEnregistre) {
+      setFeedback(null);
+      setStockEnregistre(false);
+    }
   };
 
   const stockDateLabel = stockDate.toLocaleDateString('fr-FR', {
@@ -89,7 +96,7 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
     });
   };
 
-  const handleCalculer = async () => {
+  const handleEnregistrer = async () => {
     const entries = Object.entries(stockValues)
       .filter(([, q]) => q > 0)
       .map(([code, quantite]) => ({
@@ -99,16 +106,27 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
       }));
 
     if (entries.length === 0) {
-      Alert.alert('Stock vide', 'Saisissez au moins une quantité en stock.');
+      setStockEnregistre(false);
+      setFeedback({ variant: 'warning', message: 'Saisissez au moins une quantité en stock avant d\'enregistrer.' });
       return;
     }
 
     setLoading(true);
+    setFeedback(null);
     try {
       await saveStock(entries);
-      onNavigate('Commande');
+      const totalKg = entries.reduce((s, e) => s + e.quantite, 0);
+      setStockEnregistre(true);
+      setFeedback({
+        variant: 'success',
+        message: `Stock enregistré : ${entries.length} produit${entries.length > 1 ? 's' : ''} · ${formatKg(totalKg)} kg pour le ${stockDateLabel}.`,
+      });
     } catch (err) {
-      Alert.alert('Erreur', 'Impossible de sauvegarder le stock. Vérifiez la connexion au serveur.');
+      setStockEnregistre(false);
+      setFeedback({
+        variant: 'error',
+        message: 'Impossible d\'enregistrer le stock. Vérifiez la connexion au serveur.',
+      });
     } finally {
       setLoading(false);
     }
@@ -160,11 +178,15 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
           </View>
         </View>
 
-        <AlertBanner
-          message="Saisissez les quantités restantes en stock."
-          variant="info"
-          icon="📝"
-        />
+        {feedback ? (
+          <AlertBanner message={feedback.message} variant={feedback.variant} />
+        ) : (
+          <AlertBanner
+            message="Saisissez les quantités restantes en stock."
+            variant="info"
+            icon="📝"
+          />
+        )}
 
         {categories.map((cat, index) => (
           <CategoryAccordion
@@ -180,20 +202,32 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
         <View style={{ height: 16 }} />
       </ScrollView>
 
-      {/* Bouton fixe en bas */}
+      {/* Boutons fixes en bas */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={[styles.calcButton, loading && styles.calcButtonDisabled]}
-          onPress={handleCalculer}
+          onPress={handleEnregistrer}
           activeOpacity={0.85}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.calcButtonText}>Calculer la suggestion de commande</Text>
+            <Text style={styles.calcButtonText}>
+              {stockEnregistre ? '✅ Stock enregistré — réenregistrer' : '💾 Enregistrer le stock du jour'}
+            </Text>
           )}
         </TouchableOpacity>
+
+        {stockEnregistre && (
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => onNavigate('Commande')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryButtonText}>Calculer la commande →</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Modal historique des stocks */}
@@ -337,6 +371,19 @@ const styles = StyleSheet.create({
   calcButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    marginTop: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#7F77DD',
+  },
+  secondaryButtonText: {
+    color: '#7F77DD',
+    fontSize: 14,
     fontWeight: '700',
   },
   dateSelector: {
