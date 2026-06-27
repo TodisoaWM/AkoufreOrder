@@ -8,16 +8,27 @@ const COMMANDE_JSON = path.resolve(__dirname, '../../commande.json');
 export async function sauvegarderCommande(data: {
   dateLivraison: string;
   coefficient: number;
-  lignes: { produitId: number; quantite: number; stock: number }[];
+  lignes: { produitCode: string; quantite: number; stock: number }[];
 }) {
-  const totalUnites = data.lignes.reduce((s, l) => s + l.quantite, 0);
+  // Résolution des codes produit → id
+  const produits = await prisma.produit.findMany({
+    where: { code: { in: data.lignes.map((l) => l.produitCode) } },
+    select: { id: true, code: true },
+  });
+  const idParCode = new Map(produits.map((p) => [p.code, p.id]));
+
+  const lignesValides = data.lignes
+    .map((l) => ({ produitId: idParCode.get(l.produitCode), quantite: l.quantite, stock: l.stock }))
+    .filter((l): l is { produitId: number; quantite: number; stock: number } => l.produitId !== undefined);
+
+  const totalUnites = lignesValides.reduce((s, l) => s + l.quantite, 0);
 
   const commande = await prisma.commande.create({
     data: {
       dateLivraison: new Date(data.dateLivraison),
       coefficient: data.coefficient,
       totalUnites,
-      lignes: { create: data.lignes.map((l) => ({ produitId: l.produitId, quantite: l.quantite, stock: l.stock })) },
+      lignes: { create: lignesValides.map((l) => ({ produitId: l.produitId, quantite: l.quantite, stock: l.stock })) },
     },
     include: { lignes: { include: { produit: true } } },
   });

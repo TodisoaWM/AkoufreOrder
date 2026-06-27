@@ -167,19 +167,14 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
     setFeedback(null);
     try {
       const lignes = PRODUITS.map((p) => ({
-        produit: p,
+        produitCode: p.code,
         quantite: quantities[p.code] || 0,
         stock: 0,
-        moyenneJour: 0,
-        formulaHint: formulaHints[p.code] || '',
       })).filter((l) => l.quantite > 0);
 
       await saveCommande({
-        dateCommande: new Date().toISOString(),
         dateLivraison: periodeInfo.dateLivraison.toISOString(),
-        statut: 'Soumis',
         coefficient: periodeInfo.coefficient,
-        totalUnites,
         lignes,
       });
 

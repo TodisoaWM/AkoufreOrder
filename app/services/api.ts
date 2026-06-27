@@ -15,8 +15,19 @@ async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 // Stock
-export const getDernierStock = (): Promise<Record<string, number>> =>
-  fetchJSON<Record<string, number>>('/stock/dernier');
+export interface DernierStockItem {
+  id: number;
+  code: string;
+  article: string;
+  categorie: string;
+  moyenneJour: number;
+  stockSecurite: number;
+  dernierStock: number | null;
+  dateDernierStock: string | null;
+}
+
+export const getDernierStock = (): Promise<DernierStockItem[]> =>
+  fetchJSON<DernierStockItem[]>('/stock/dernier');
 
 export const getHistoriqueStock = (): Promise<StockHistoriqueJour[]> =>
   fetchJSON<StockHistoriqueJour[]>('/stock/historique');
@@ -31,7 +42,13 @@ export const saveStock = (entrees: StockEntree[]): Promise<{ succes: boolean; co
 export const getCommandes = (): Promise<Commande[]> =>
   fetchJSON<Commande[]>('/commande');
 
-export const saveCommande = (commande: Omit<Commande, 'id'>): Promise<Commande> =>
+export interface SaveCommandePayload {
+  dateLivraison: string;
+  coefficient: number;
+  lignes: { produitCode: string; quantite: number; stock: number }[];
+}
+
+export const saveCommande = (commande: SaveCommandePayload): Promise<Commande> =>
   fetchJSON<Commande>('/commande', {
     method: 'POST',
     body: JSON.stringify(commande),
