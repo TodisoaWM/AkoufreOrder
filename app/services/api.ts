@@ -1,4 +1,4 @@
-import { Commande, StockEntree, StatVente, RotationProduit, SuggestionCommande } from '../types';
+import { Commande, StockEntree, StatVente, RotationProduit, SuggestionCommande, StockHistoriqueJour } from '../types';
 
 const BASE_URL = 'http://localhost:3000/api';
 
@@ -17,6 +17,9 @@ async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
 // Stock
 export const getDernierStock = (): Promise<Record<string, number>> =>
   fetchJSON<Record<string, number>>('/stock/dernier');
+
+export const getHistoriqueStock = (): Promise<StockHistoriqueJour[]> =>
+  fetchJSON<StockHistoriqueJour[]>('/stock/historique');
 
 export const saveStock = (entries: StockEntree[]): Promise<{ success: boolean }> =>
   fetchJSON<{ success: boolean }>('/stock', {

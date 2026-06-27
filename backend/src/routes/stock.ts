@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDernierStock, sauvegarderStock, getStockCritique } from '../services/stockService';
+import { getDernierStock, sauvegarderStock, getStockCritique, getHistoriqueStock } from '../services/stockService';
 
 const router = Router();
 
@@ -9,6 +9,15 @@ router.get('/dernier', async (_req: Request, res: Response) => {
     res.json(stock);
   } catch (e) {
     res.status(500).json({ erreur: 'Erreur lors de la récupération du stock' });
+  }
+});
+
+router.get('/historique', async (_req: Request, res: Response) => {
+  try {
+    const historique = await getHistoriqueStock();
+    res.json(historique);
+  } catch (e) {
+    res.status(500).json({ erreur: 'Erreur lors de la récupération de l\'historique du stock' });
   }
 });
 

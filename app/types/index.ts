@@ -34,6 +34,20 @@ export interface StockEntree {
   date: string;
 }
 
+export interface StockHistoriqueLigne {
+  code: string;
+  article: string;
+  categorie: string;
+  quantite: number;
+  heure: string;
+}
+
+export interface StockHistoriqueJour {
+  date: string;
+  total: number;
+  lignes: StockHistoriqueLigne[];
+}
+
 export interface StatVente {
   date: string;
   totalUnites: number;

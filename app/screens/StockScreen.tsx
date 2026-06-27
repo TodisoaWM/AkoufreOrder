@@ -8,12 +8,13 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import CategoryAccordion from '../components/CategoryAccordion';
 import AlertBanner from '../components/AlertBanner';
 import { getCategories, getProduitsByCategorie } from '../data/produits';
-import { saveStock } from '../services/api';
-import { TabName } from '../types';
+import { saveStock, getHistoriqueStock } from '../services/api';
+import { TabName, StockHistoriqueJour } from '../types';
 
 interface StockScreenProps {
   onNavigate: (tab: TabName) => void;
@@ -22,8 +23,34 @@ interface StockScreenProps {
 export default function StockScreen({ onNavigate }: StockScreenProps) {
   const [stockValues, setStockValues] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
+  const [histoVisible, setHistoVisible] = useState(false);
+  const [histoLoading, setHistoLoading] = useState(false);
+  const [historique, setHistorique] = useState<StockHistoriqueJour[]>([]);
+  const [jourOuvert, setJourOuvert] = useState<string | null>(null);
 
   const categories = getCategories();
+
+  const ouvrirHistorique = async () => {
+    setHistoVisible(true);
+    setHistoLoading(true);
+    try {
+      const data = await getHistoriqueStock();
+      setHistorique(data);
+      setJourOuvert(data.length > 0 ? data[0].date : null);
+    } catch {
+      setHistorique([]);
+    } finally {
+      setHistoLoading(false);
+    }
+  };
+
+  const formatJour = (iso: string) =>
+    new Date(iso).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
 
   const handleChangeValue = (code: string, value: number) => {
     setStockValues((prev) => ({ ...prev, [code]: value }));
@@ -79,6 +106,10 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
             <Text style={styles.headerTitle}>Stock fin de journée</Text>
             <Text style={styles.headerDate}>{today}</Text>
           </View>
+          <TouchableOpacity style={styles.histoBtn} onPress={ouvrirHistorique} activeOpacity={0.8}>
+            <Text style={styles.histoBtnIcon}>🕑</Text>
+            <Text style={styles.histoBtnText}>Historique</Text>
+          </TouchableOpacity>
         </View>
 
         <AlertBanner
@@ -116,6 +147,69 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Modal historique des stocks */}
+      <Modal
+        visible={histoVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setHistoVisible(false)}
+      >
+        <View style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Historique des stocks</Text>
+            <TouchableOpacity onPress={() => setHistoVisible(false)} style={styles.modalClose}>
+              <Text style={styles.modalCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {histoLoading ? (
+            <View style={styles.loader}>
+              <ActivityIndicator size="large" color="#7F77DD" />
+            </View>
+          ) : historique.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>📦</Text>
+              <Text style={styles.emptyText}>Aucun stock enregistré pour le moment.</Text>
+            </View>
+          ) : (
+            <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
+              {historique.map((jour) => {
+                const ouvert = jourOuvert === jour.date;
+                return (
+                  <View key={jour.date} style={styles.jourCard}>
+                    <TouchableOpacity
+                      style={styles.jourHeader}
+                      onPress={() => setJourOuvert(ouvert ? null : jour.date)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.jourInfo}>
+                        <Text style={styles.jourDate}>{formatJour(jour.date)}</Text>
+                        <Text style={styles.jourMeta}>
+                          {jour.lignes.length} produit{jour.lignes.length > 1 ? 's' : ''} · {jour.total} unités
+                        </Text>
+                      </View>
+                      <Text style={styles.jourChevron}>{ouvert ? '▲' : '▼'}</Text>
+                    </TouchableOpacity>
+
+                    {ouvert &&
+                      jour.lignes.map((ligne, i) => (
+                        <View key={`${ligne.code}-${i}`} style={styles.ligneRow}>
+                          <View style={styles.ligneInfo}>
+                            <Text style={styles.ligneArticle}>{ligne.article}</Text>
+                            <Text style={styles.ligneCode}>{ligne.code}</Text>
+                          </View>
+                          <Text style={styles.ligneQty}>{ligne.quantite}</Text>
+                        </View>
+                      ))}
+                  </View>
+                );
+              })}
+              <View style={{ height: 24 }} />
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -196,5 +290,138 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  histoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0EEF8',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 4,
+    marginLeft: 8,
+  },
+  histoBtnIcon: {
+    fontSize: 13,
+  },
+  histoBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7F77DD',
+  },
+  modal: {
+    flex: 1,
+    backgroundColor: '#F7F6FC',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EEF8',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1a1a2e',
+  },
+  modalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F7F6FC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseText: {
+    fontSize: 14,
+    color: '#9A97B0',
+    fontWeight: '700',
+  },
+  modalContent: {
+    padding: 16,
+  },
+  loader: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#9A97B0',
+    textAlign: 'center',
+  },
+  jourCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  jourHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  jourInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  jourDate: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1a1a2e',
+    textTransform: 'capitalize',
+  },
+  jourMeta: {
+    fontSize: 12,
+    color: '#9A97B0',
+    marginTop: 2,
+  },
+  jourChevron: {
+    fontSize: 12,
+    color: '#7F77DD',
+  },
+  ligneRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F0EEF8',
+  },
+  ligneInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  ligneArticle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1a1a2e',
+  },
+  ligneCode: {
+    fontSize: 11,
+    color: '#9A97B0',
+    marginTop: 1,
+  },
+  ligneQty: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#7F77DD',
   },
 });

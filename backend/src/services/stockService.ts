@@ -30,6 +30,37 @@ export async function getDernierStock() {
   }));
 }
 
+export async function getHistoriqueStock() {
+  const entrees = await prisma.stockEntree.findMany({
+    include: { produit: true },
+    orderBy: { date: 'desc' },
+  });
+
+  // Regroupement par jour calendaire
+  const parJour = new Map<
+    string,
+    { date: string; total: number; lignes: { code: string; article: string; categorie: string; quantite: number; heure: string }[] }
+  >();
+
+  for (const e of entrees) {
+    const jour = e.date.toISOString().slice(0, 10); // YYYY-MM-DD
+    if (!parJour.has(jour)) {
+      parJour.set(jour, { date: jour, total: 0, lignes: [] });
+    }
+    const groupe = parJour.get(jour)!;
+    groupe.total += e.quantite;
+    groupe.lignes.push({
+      code: e.produit.code,
+      article: e.produit.article,
+      categorie: e.produit.categorie,
+      quantite: e.quantite,
+      heure: e.date.toISOString(),
+    });
+  }
+
+  return Array.from(parJour.values());
+}
+
 export async function getStockCritique() {
   const produits: ProduitAvecStock[] = await prisma.produit.findMany({
     include: { stockEntrees: { orderBy: { date: 'desc' }, take: 1 } },
