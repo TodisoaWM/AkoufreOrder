@@ -26,6 +26,7 @@ export const PLAFONDS: Record<string, number> = {
   'PEVC0501': 2, // CERVELAS - Bloc 1Kg
   'SSPC0302': 8, // GESIER FRAIS
   'PEVC0601A': 1.5, // TERRINE BLOC EN KG
+  'PEVC0305': 3, // SAUCISSE AUX FINES HERBES (et 0 si stock restant < 1 kg)
   'PEVC0307': 3, // SAUCISSE AUX HERBES FUMEE
   'PEVC0304': 3, // SAUCISSE FRANKFORT
   'SSPC0402A': 20, // PATTES FRAIS
