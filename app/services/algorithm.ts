@@ -2,16 +2,18 @@
  * Algorithme : quantiteCommande = (moyenneJournaliere × joursACouvrir × coefficientPeriode) - stockActuel + stockSecurite
  *
  * Livraison / approvisionnement uniquement les LUNDI, MERCREDI, VENDREDI.
- * Rythme de commande :
- *   - Lundi & mercredi : commande passée la veille au soir (pesage fin de journée).
- *   - Vendredi (week-end) : commande passée le vendredi matin même.
- * On considère donc le jour courant comme livraison possible s'il tombe un
- * jour de livraison ; sinon on prend le prochain jour de livraison.
+ * La commande est passée le matin (avant 9h) pour une livraison FUTURE
+ * (jamais le jour même — la livraison arrive entre 9h et 12h) :
+ *   Mardi matin    → livraison mercredi
+ *   Jeudi matin    → livraison vendredi
+ *   Vendredi matin → livraison lundi   (on saute le week-end : pas de commande sam/dim)
+ *
+ * La cible est donc le prochain jour de livraison STRICTEMENT après aujourd'hui.
  *
  * Couverture (échoppe ouverte 7j/7, dimanche compris) :
- *   Livraison lundi    → couvre lun + mar           = 2 jours, ×1.0
- *   Livraison mercredi → couvre mer + jeu           = 2 jours, ×1.0
- *   Livraison vendredi → couvre ven + sam + dim     = 3 jours, ×1.5 (week-end)
+ *   Livraison lundi    → couvre lun + mar (jusqu'au mer matin)        = 2 jours, ×1.0
+ *   Livraison mercredi → couvre mer + jeu (jusqu'au ven matin)        = 2 jours, ×1.0
+ *   Livraison vendredi → couvre ven + sam + dim (jusqu'au lun matin)  = 3 jours, ×1.5 (week-end)
  *   Veille de fête     → ×2.0
  *
  * (Un approvisionnement exceptionnel hors Lun/Mer/Ven reste possible mais rare.)
@@ -23,7 +25,7 @@ const JOURS_LIVRAISON = [1, 3, 5];
 function prochaineLivraison(date: Date): Date {
   const d = new Date(date);
   d.setHours(12, 0, 0, 0);
-  // Inclut le jour courant (ex : commande du vendredi matin → livraison vendredi)
+  d.setDate(d.getDate() + 1); // strictement après aujourd'hui (commande pour une livraison future)
   while (!JOURS_LIVRAISON.includes(d.getDay())) {
     d.setDate(d.getDate() + 1);
   }

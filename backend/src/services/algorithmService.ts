@@ -3,12 +3,16 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Livraison uniquement les LUNDI(1), MERCREDI(3), VENDREDI(5).
-// Lundi/mercredi couvrent 2 jours ; vendredi couvre le week-end (ven+sam+dim = 3 jours, ×1.5).
+// Commande passée le matin pour une livraison future (jamais le jour même) :
+//   mardi→mer, jeudi→ven, vendredi→lun (on saute le week-end).
+// Cible = prochain jour de livraison strictement après aujourd'hui.
+// Couverture : lundi=2j ×1.0, mercredi=2j ×1.0, vendredi=3j ×1.5 (week-end).
 const JOURS_LIVRAISON = [1, 3, 5];
 
 function prochaineLivraison(date: Date): Date {
   const d = new Date(date);
   d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() + 1); // strictement après aujourd'hui
   while (!JOURS_LIVRAISON.includes(d.getDay())) {
     d.setDate(d.getDate() + 1);
   }
