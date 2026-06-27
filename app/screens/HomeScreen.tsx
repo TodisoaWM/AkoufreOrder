@@ -77,14 +77,18 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
               <Text style={styles.greeting}>Bonjour,</Text>
               <Text style={styles.shopName}>Akoufré Ambanidia — Echoppe</Text>
             </View>
-            <TouchableOpacity
-              style={styles.refreshBtn}
-              onPress={onRefresh}
-              activeOpacity={0.8}
-              disabled={refreshing}
-            >
-              <Text style={styles.refreshBtnText}>{refreshing ? '…' : '🔄'}</Text>
-            </TouchableOpacity>
+            {/* Bouton de rafraîchissement réservé au dev/test : masqué automatiquement
+                en production (__DEV__ vaut false dans un build de déploiement). */}
+            {__DEV__ && (
+              <TouchableOpacity
+                style={styles.refreshBtn}
+                onPress={onRefresh}
+                activeOpacity={0.8}
+                disabled={refreshing}
+              >
+                <Text style={styles.refreshBtnText}>{refreshing ? '…' : '🔄'}</Text>
+              </TouchableOpacity>
+            )}
           </View>
           <HeroCard
             totalUnites={heroTotal ?? 0}
