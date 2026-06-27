@@ -109,18 +109,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.5,
     borderRadius: 10,
-    width: 86,
+    width: 90,
     height: 40,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     paddingHorizontal: 8,
+    overflow: 'hidden',
   },
   input: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0, // indispensable sur le web pour empêcher l'<input> de déborder
     fontSize: 16,
     fontWeight: '700',
     color: '#1a1a2e',
     textAlign: 'right',
     padding: 0,
+    // @ts-ignore — propriété web (react-native-web) pour retirer le liseré de focus
+    outlineStyle: 'none',
   },
   unit: {
     fontSize: 12,
