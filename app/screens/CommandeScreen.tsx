@@ -56,11 +56,14 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
   useEffect(() => {
     const initial: Record<string, BaseProduit> = {};
     PRODUITS.forEach((p) => {
-      initial[p.code] = {
-        moyenneJournaliere: Math.round(Math.random() * 60 + 10),
-        stockActuel: Math.round(Math.random() * 20),
-        stockSecurite: 5,
-      };
+      // Données de DÉMONSTRATION réalistes (en attendant le branchement des vraies ventes) :
+      // une échoppe vend de l'ordre de 2 à 12 kg/jour par produit.
+      const moyenneJournaliere = Math.round((Math.random() * 10 + 2) * 10) / 10; // 2,0 – 12,0 kg/j
+      // Stock restant : entre 0 et ~1 jour de vente
+      const stockActuel = Math.round(Math.random() * moyenneJournaliere * 10) / 10;
+      // Stock de sécurité proportionnel (≈ 1/4 de journée), au moins 0,5 kg
+      const stockSecurite = Math.max(0.5, Math.round(moyenneJournaliere * 0.25 * 10) / 10);
+      initial[p.code] = { moyenneJournaliere, stockActuel, stockSecurite };
     });
     setBases(initial);
   }, []);
