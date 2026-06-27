@@ -8,6 +8,7 @@ interface ProductInputProps {
   value: number;
   onChangeValue: (code: string, value: number) => void;
   formulaHint?: string;
+  refHint?: string;
   accentColor?: string;
 }
 
@@ -16,6 +17,7 @@ export default function ProductInput({
   value,
   onChangeValue,
   formulaHint,
+  refHint,
   accentColor = '#7F77DD',
 }: ProductInputProps) {
   // État texte local pour permettre la saisie fluide de décimales (« 0, », « 1,2 »…)
@@ -56,6 +58,7 @@ export default function ProductInput({
         </Text>
         <Text style={styles.code}>{produit.code}</Text>
         {formulaHint ? <Text style={styles.formula}>{formulaHint}</Text> : null}
+        {refHint ? <Text style={styles.ref}>{refHint}</Text> : null}
       </View>
       <View style={[styles.inputWrapper, { borderColor: accentColor }]}>
         <TextInput
@@ -103,6 +106,11 @@ const styles = StyleSheet.create({
     color: '#7F77DD',
     marginTop: 2,
     fontStyle: 'italic',
+  },
+  ref: {
+    fontSize: 10,
+    color: '#9A97B0',
+    marginTop: 2,
   },
   inputWrapper: {
     flexDirection: 'row',

@@ -230,7 +230,7 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
             produits={getProduitsByCategorie(cat)}
             values={stockValues}
             onChangeValue={handleChangeValue}
-            formulaHints={refHints}
+            refHints={refHints}
             defaultOpen={index === 0}
           />
         ))}

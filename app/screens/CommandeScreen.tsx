@@ -21,7 +21,7 @@ import {
   formatDate,
   formatDateLong,
 } from '../services/algorithm';
-import { saveCommande, calculerSuggestion } from '../services/api';
+import { saveCommande, calculerSuggestion, getDernierStock } from '../services/api';
 import { TabName } from '../types';
 import { formatKg } from '../services/format';
 
@@ -38,6 +38,7 @@ interface BaseProduit {
 export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [formulaHints, setFormulaHints] = useState<Record<string, string>>({});
+  const [refHints, setRefHints] = useState<Record<string, string>>({});
   const [bases, setBases] = useState<Record<string, BaseProduit>>({});
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -69,6 +70,33 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
       initial[p.code] = { moyenneJournaliere, stockActuel, stockSecurite };
     });
     setBases(initial);
+  }, []);
+
+  // Dernier stock connu par produit, affiché en référence sous chaque article
+  useEffect(() => {
+    let annule = false;
+    getDernierStock()
+      .then((items) => {
+        if (annule) return;
+        const map: Record<string, string> = {};
+        items.forEach((it) => {
+          if (it.dernierStock === null || it.dernierStock === undefined) {
+            map[it.code] = 'Aucun stock précédent';
+          } else {
+            const d = it.dateDernierStock
+              ? new Date(it.dateDernierStock).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+              : '';
+            map[it.code] = `Dernier stock : ${formatKg(it.dernierStock)} kg${d ? ` · ${d}` : ''}`;
+          }
+        });
+        setRefHints(map);
+      })
+      .catch(() => {
+        /* serveur injoignable — pas de référence */
+      });
+    return () => {
+      annule = true;
+    };
   }, []);
 
   // Repli local (démo) quand le backend est injoignable
@@ -255,6 +283,7 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
             values={quantities}
             onChangeValue={handleChangeValue}
             formulaHints={formulaHints}
+            refHints={refHints}
             defaultOpen={index === 0}
           />
         ))}

@@ -11,6 +11,7 @@ interface CategoryAccordionProps {
   values: Record<string, number>;
   onChangeValue: (code: string, value: number) => void;
   formulaHints?: Record<string, string>;
+  refHints?: Record<string, string>;
   defaultOpen?: boolean;
 }
 
@@ -20,6 +21,7 @@ export default function CategoryAccordion({
   values,
   onChangeValue,
   formulaHints = {},
+  refHints = {},
   defaultOpen = false,
 }: CategoryAccordionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -55,6 +57,7 @@ export default function CategoryAccordion({
               value={values[produit.code] || 0}
               onChangeValue={onChangeValue}
               formulaHint={formulaHints[produit.code]}
+              refHint={refHints[produit.code]}
               accentColor={accentColor}
             />
           ))}
