@@ -70,13 +70,35 @@ export interface PeriodeInfo {
   dateLivraison: Date;
 }
 
+// Période calculée à partir du jour de COMMANDE (cas normal : on vise la
+// prochaine livraison Lun/Mer/Ven strictement après aujourd'hui).
 export function getPeriodeInfo(date: Date, veilleFete: boolean = false): PeriodeInfo {
-  const livraison = prochaineLivraison(date);
-  const suivante = livraisonSuivante(livraison);
-  const joursACouvrir = Math.round((suivante.getTime() - livraison.getTime()) / 86400000);
+  return getPeriodeInfoLivraison(prochaineLivraison(date), veilleFete);
+}
 
-  // La livraison du vendredi couvre le week-end (ven + sam + dim) → demande plus forte
-  const couvreWeekend = livraison.getDay() === 5;
+// Période calculée à partir d'une date de LIVRAISON choisie.
+// Sert au sélecteur de date sur l'écran Commande (approvisionnement exceptionnel
+// possible n'importe quel jour). La couverture va jusqu'à la prochaine livraison
+// régulière Lun/Mer/Ven ; le coefficient passe en ×1.5 si la période inclut un
+// samedi ou un dimanche (demande week-end plus forte).
+export function getPeriodeInfoLivraison(livraison: Date, veilleFete: boolean = false): PeriodeInfo {
+  const liv = new Date(livraison);
+  liv.setHours(12, 0, 0, 0);
+
+  const suivante = livraisonSuivante(liv);
+  const joursACouvrir = Math.max(1, Math.round((suivante.getTime() - liv.getTime()) / 86400000));
+
+  // Week-end couvert ? (un des jours de la période est un samedi ou un dimanche)
+  let couvreWeekend = false;
+  const cur = new Date(liv);
+  for (let i = 0; i < joursACouvrir; i++) {
+    const dow = cur.getDay();
+    if (dow === 0 || dow === 6) {
+      couvreWeekend = true;
+      break;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
 
   let coefficient = couvreWeekend ? 1.5 : 1.0;
   let label = couvreWeekend ? 'Week-end ×1.5' : 'Standard ×1.0';
@@ -86,7 +108,23 @@ export function getPeriodeInfo(date: Date, veilleFete: boolean = false): Periode
     label = 'Veille fête ×2.0';
   }
 
-  return { coefficient, joursACouvrir, label, dateLivraison: livraison };
+  return { coefficient, joursACouvrir, label, dateLivraison: liv };
+}
+
+// Jour de livraison régulier précédent (Lun/Mer/Ven) strictement avant la date donnée.
+export function livraisonPrecedente(livraison: Date): Date {
+  const d = new Date(livraison);
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() - 1);
+  while (!JOURS_LIVRAISON.includes(d.getDay())) {
+    d.setDate(d.getDate() - 1);
+  }
+  return d;
+}
+
+// Jour de livraison régulier suivant (Lun/Mer/Ven) strictement après la date donnée. Exporté pour l'UI.
+export function livraisonSuivanteReguliere(livraison: Date): Date {
+  return livraisonSuivante(livraison);
 }
 
 export function formatDate(date: Date): string {

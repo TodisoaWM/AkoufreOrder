@@ -12,7 +12,15 @@ import {
 import CategoryAccordion from '../components/CategoryAccordion';
 import SummaryCard from '../components/SummaryCard';
 import { getCategories, getProduitsByCategorie, PRODUITS } from '../data/produits';
-import { calculerQuantite, getPeriodeInfo, formatDate } from '../services/algorithm';
+import {
+  calculerQuantite,
+  getPeriodeInfo,
+  getPeriodeInfoLivraison,
+  livraisonPrecedente,
+  livraisonSuivanteReguliere,
+  formatDate,
+  formatDateLong,
+} from '../services/algorithm';
 import { saveCommande } from '../services/api';
 import { TabName } from '../types';
 import { formatKg } from '../services/format';
@@ -21,42 +29,74 @@ interface CommandeScreenProps {
   onNavigate: (tab: TabName) => void;
 }
 
+interface BaseProduit {
+  moyenneJournaliere: number;
+  stockActuel: number;
+  stockSecurite: number;
+}
+
 export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [formulaHints, setFormulaHints] = useState<Record<string, string>>({});
+  const [bases, setBases] = useState<Record<string, BaseProduit>>({});
   const [loading, setLoading] = useState(false);
+  // Date de livraison ciblée — par défaut la prochaine livraison régulière
+  const [dateLivraison, setDateLivraison] = useState<Date>(() => getPeriodeInfo(new Date()).dateLivraison);
 
-  const periodeInfo = getPeriodeInfo(new Date());
+  const periodeInfo = getPeriodeInfoLivraison(dateLivraison);
   const categories = getCategories();
 
+  // Date plancher : on ne peut pas livrer aujourd'hui ou dans le passé (commande pour livraison future)
+  const livraisonMin = getPeriodeInfo(new Date()).dateLivraison;
+  const peutReculer = dateLivraison.getTime() > livraisonMin.getTime();
+
+  // Génère une seule fois les données de base (mock tant que le stock réel n'est pas branché)
   useEffect(() => {
-    const initialQty: Record<string, number> = {};
-    const hints: Record<string, string> = {};
-
+    const initial: Record<string, BaseProduit> = {};
     PRODUITS.forEach((p) => {
-      const moyenneJournaliere = Math.round(Math.random() * 60 + 10);
-      const stockActuel = Math.round(Math.random() * 20);
-      const stockSecurite = 5;
+      initial[p.code] = {
+        moyenneJournaliere: Math.round(Math.random() * 60 + 10),
+        stockActuel: Math.round(Math.random() * 20),
+        stockSecurite: 5,
+      };
+    });
+    setBases(initial);
+  }, []);
 
+  // Recalcule les quantités suggérées quand la date de livraison (donc la période) change
+  useEffect(() => {
+    if (Object.keys(bases).length === 0) return;
+    const qty: Record<string, number> = {};
+    const hints: Record<string, string> = {};
+    PRODUITS.forEach((p) => {
+      const base = bases[p.code];
+      if (!base) return;
       const result = calculerQuantite({
-        moyenneJournaliere,
-        stockActuel,
-        stockSecurite,
+        moyenneJournaliere: base.moyenneJournaliere,
+        stockActuel: base.stockActuel,
+        stockSecurite: base.stockSecurite,
         coefficient: periodeInfo.coefficient,
         joursACouvrir: periodeInfo.joursACouvrir,
       });
-
-      initialQty[p.code] = result.quantite;
+      qty[p.code] = result.quantite;
       hints[p.code] = result.formulaHint;
     });
-
-    setQuantities(initialQty);
+    setQuantities(qty);
     setFormulaHints(hints);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bases, periodeInfo.coefficient, periodeInfo.joursACouvrir]);
 
   const handleChangeValue = (code: string, value: number) => {
     setQuantities((prev) => ({ ...prev, [code]: value }));
   };
+
+  const reculerLivraison = () => {
+    if (peutReculer) setDateLivraison((prev) => livraisonPrecedente(prev));
+  };
+  const avancerLivraison = () => {
+    setDateLivraison((prev) => livraisonSuivanteReguliere(prev));
+  };
+  const estLivraisonParDefaut = dateLivraison.getTime() === livraisonMin.getTime();
 
   const totalUnites = Object.values(quantities).reduce((s, v) => s + v, 0);
 
@@ -120,6 +160,32 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
           <Text style={styles.headerTitle}>Commande du jour</Text>
         </View>
 
+        {/* Sélecteur de date de livraison (appro exceptionnel) */}
+        <View style={styles.dateSelector}>
+          <Text style={styles.dateSelectorLabel}>Date de livraison</Text>
+          <View style={styles.dateSelectorControls}>
+            <TouchableOpacity
+              style={[styles.dateArrow, !peutReculer && styles.dateArrowDisabled]}
+              onPress={reculerLivraison}
+              activeOpacity={0.7}
+              disabled={!peutReculer}
+            >
+              <Text style={[styles.dateArrowText, !peutReculer && styles.dateArrowTextDisabled]}>◀</Text>
+            </TouchableOpacity>
+            <Text style={styles.dateValue}>{formatDateLong(dateLivraison)}</Text>
+            <TouchableOpacity style={styles.dateArrow} onPress={avancerLivraison} activeOpacity={0.7}>
+              <Text style={styles.dateArrowText}>▶</Text>
+            </TouchableOpacity>
+          </View>
+          {estLivraisonParDefaut ? (
+            <Text style={styles.dateHint}>Prochaine livraison · {periodeInfo.joursACouvrir} j à couvrir</Text>
+          ) : (
+            <Text style={[styles.dateHint, styles.dateHintExceptionnel]}>
+              ⚠️ Livraison exceptionnelle · {periodeInfo.joursACouvrir} j à couvrir
+            </Text>
+          )}
+        </View>
+
         <SummaryCard
           totalUnites={totalUnites}
           dateLivraison={formatDate(periodeInfo.dateLivraison)}
@@ -169,6 +235,68 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#F7F6FC',
+  },
+  dateSelector: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dateSelectorLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9A97B0',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 6,
+  },
+  dateSelectorControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F0EEF8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateArrowDisabled: {
+    backgroundColor: '#F7F6FC',
+  },
+  dateArrowText: {
+    fontSize: 14,
+    color: '#7F77DD',
+    fontWeight: '700',
+  },
+  dateArrowTextDisabled: {
+    color: '#D8D5E8',
+  },
+  dateValue: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1a1a2e',
+    textTransform: 'capitalize',
+  },
+  dateHint: {
+    fontSize: 11,
+    color: '#9A97B0',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  dateHintExceptionnel: {
+    color: '#EF9F27',
+    fontWeight: '700',
   },
   header: {
     flexDirection: 'row',
