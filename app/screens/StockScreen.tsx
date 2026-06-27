@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 import CategoryAccordion from '../components/CategoryAccordion';
 import AlertBanner from '../components/AlertBanner';
 import { getCategories, getProduitsByCategorie } from '../data/produits';
-import { saveStock, getHistoriqueStock } from '../services/api';
+import { saveStock, getHistoriqueStock, getDernierStock } from '../services/api';
 import { TabName, StockHistoriqueJour } from '../types';
 import { formatKg } from '../services/format';
 
@@ -30,6 +30,8 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
   // Retour visuel intégré (Alert ne fonctionne pas sur le web)
   const [feedback, setFeedback] = useState<{ variant: 'success' | 'error' | 'warning'; message: string } | null>(null);
   const [stockEnregistre, setStockEnregistre] = useState(false);
+  // Dernier stock enregistré par produit (affiché en référence, sans pré-remplir le champ)
+  const [dernierStock, setDernierStock] = useState<Record<string, { qte: number | null; date: string | null }>>({});
   // Date du stock — pré-remplie avec aujourd'hui, modifiable (ex : pesage fait le lendemain)
   const [stockDate, setStockDate] = useState(() => {
     const d = new Date();
@@ -38,6 +40,39 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
   });
 
   const categories = getCategories();
+
+  // Charge le dernier stock connu de chaque produit (référence)
+  useEffect(() => {
+    let annule = false;
+    getDernierStock()
+      .then((items) => {
+        if (annule) return;
+        const map: Record<string, { qte: number | null; date: string | null }> = {};
+        items.forEach((it) => {
+          map[it.code] = { qte: it.dernierStock, date: it.dateDernierStock };
+        });
+        setDernierStock(map);
+      })
+      .catch(() => {
+        /* serveur injoignable — pas de référence affichée */
+      });
+    return () => {
+      annule = true;
+    };
+  }, [stockEnregistre]);
+
+  // Texte de référence affiché sous chaque produit
+  const refHints: Record<string, string> = {};
+  Object.entries(dernierStock).forEach(([code, info]) => {
+    if (info.qte === null || info.qte === undefined) {
+      refHints[code] = 'Aucun stock précédent';
+    } else {
+      const dateLabel = info.date
+        ? new Date(info.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+        : '';
+      refHints[code] = `Dernier stock : ${formatKg(info.qte)} kg${dateLabel ? ` · ${dateLabel}` : ''}`;
+    }
+  });
 
   const ouvrirHistorique = async () => {
     setHistoVisible(true);
@@ -195,6 +230,7 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
             produits={getProduitsByCategorie(cat)}
             values={stockValues}
             onChangeValue={handleChangeValue}
+            formulaHints={refHints}
             defaultOpen={index === 0}
           />
         ))}
