@@ -48,8 +48,18 @@ export interface StockHistoriqueJour {
   lignes: StockHistoriqueLigne[];
 }
 
+export interface DashboardStats {
+  articlesEnStock: number;
+  totalArticles: number;
+  rotationMoyenne: number;
+  stockCritique: number;
+  derniereCommande: string | null;
+  derniereCommandeTotal: number | null;
+}
+
 export interface StatVente {
   date: string;
+  jour?: string;
   totalUnites: number;
 }
 

@@ -64,6 +64,50 @@ router.get('/rotation', async (_req: Request, res: Response) => {
   }
 });
 
+router.get('/dashboard', async (_req: Request, res: Response) => {
+  try {
+    const produits = await prisma.produit.findMany({
+      include: { stockEntrees: { orderBy: { date: 'desc' }, take: 7 } },
+    });
+
+    const totalArticles = produits.length;
+    let articlesEnStock = 0;
+    let stockCritique = 0;
+    let totalRotation = 0;
+    let nbRotation = 0;
+
+    for (const p of produits) {
+      const dernier = p.stockEntrees[0]?.quantite;
+      if (dernier !== undefined && dernier > 0) articlesEnStock++;
+      if (dernier !== undefined && p.stockSecurite > 0 && dernier <= p.stockSecurite) stockCritique++;
+      if (p.stockEntrees.length >= 2) {
+        const initial = p.stockEntrees[p.stockEntrees.length - 1].quantite;
+        const final_ = p.stockEntrees[0].quantite;
+        if (initial > 0) {
+          totalRotation += Math.max(0, Math.round(((initial - final_) / initial) * 100));
+          nbRotation++;
+        }
+      }
+    }
+
+    const derniere = await prisma.commande.findFirst({
+      orderBy: { dateCommande: 'desc' },
+      select: { dateCommande: true, totalUnites: true },
+    });
+
+    res.json({
+      articlesEnStock,
+      totalArticles,
+      rotationMoyenne: nbRotation > 0 ? Math.round(totalRotation / nbRotation) : 0,
+      stockCritique,
+      derniereCommande: derniere?.dateCommande ?? null,
+      derniereCommandeTotal: derniere?.totalUnites ?? null,
+    });
+  } catch (e) {
+    res.status(500).json({ erreur: 'Erreur lors du calcul du tableau de bord' });
+  }
+});
+
 router.get('/fetes', async (_req: Request, res: Response) => {
   try {
     const fetes = await prisma.jourFerie.findMany({

@@ -11,8 +11,9 @@ import {
 import HeroCard from '../components/HeroCard';
 import StatTile from '../components/StatTile';
 import AlertBanner from '../components/AlertBanner';
-import { TabName } from '../types';
+import { TabName, DashboardStats } from '../types';
 import { getPeriodeInfo, formatDate } from '../services/algorithm';
+import { getDashboard, calculerSuggestion } from '../services/api';
 
 interface HomeScreenProps {
   onNavigate: (tab: TabName) => void;
@@ -21,17 +22,42 @@ interface HomeScreenProps {
 export default function HomeScreen({ onNavigate }: HomeScreenProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [periodeInfo, setPeriodeInfo] = useState(getPeriodeInfo(new Date()));
+  const [dashboard, setDashboard] = useState<DashboardStats | null>(null);
+  const [heroTotal, setHeroTotal] = useState<number | null>(null);
+  const [erreur, setErreur] = useState(false);
+
+  const chargerDonnees = async () => {
+    const periode = getPeriodeInfo(new Date());
+    setPeriodeInfo(periode);
+    try {
+      const [dash, sugg] = await Promise.all([
+        getDashboard(),
+        calculerSuggestion(periode.dateLivraison.toISOString()),
+      ]);
+      setDashboard(dash);
+      setHeroTotal(sugg.totalUnites);
+      setErreur(false);
+    } catch {
+      setErreur(true);
+    }
+  };
 
   useEffect(() => {
-    setPeriodeInfo(getPeriodeInfo(new Date()));
+    chargerDonnees();
   }, []);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    await chargerDonnees();
+    setRefreshing(false);
   };
 
   const isWeekend = periodeInfo.coefficient >= 1.5;
+
+  const fmtDateCourte = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+      : '—';
 
   return (
     <View style={styles.screen}>
@@ -49,12 +75,19 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
           <Text style={styles.greeting}>Bonjour,</Text>
           <Text style={styles.shopName}>Akoufré Ambanidia — Echoppe</Text>
           <HeroCard
-            totalUnites={302}
+            totalUnites={heroTotal ?? 0}
             labelPeriode={periodeInfo.label}
             dateLivraison={formatDate(periodeInfo.dateLivraison)}
             coefficient={periodeInfo.coefficient}
           />
         </View>
+
+        {erreur && (
+          <AlertBanner
+            message="Serveur injoignable — démarrez le backend pour voir vos vraies données."
+            variant="warning"
+          />
+        )}
 
         {isWeekend && (
           <AlertBanner
@@ -70,13 +103,13 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
           <View style={styles.statsRow}>
             <StatTile
               label="Articles en stock"
-              value="18/25"
+              value={dashboard ? `${dashboard.articlesEnStock}/${dashboard.totalArticles}` : '—'}
               icon="📦"
               accentColor="#7F77DD"
             />
             <StatTile
               label="Rotation moy."
-              value="94%"
+              value={dashboard ? `${dashboard.rotationMoyenne}%` : '—'}
               icon="🔄"
               accentColor="#5DCAA5"
             />
@@ -84,13 +117,13 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
           <View style={styles.statsRow}>
             <StatTile
               label="Dernière commande"
-              value="Jeu 19/06"
+              value={dashboard ? fmtDateCourte(dashboard.derniereCommande) : '—'}
               icon="📋"
               accentColor="#EF9F27"
             />
             <StatTile
               label="Stock critique"
-              value="2 produits"
+              value={dashboard ? `${dashboard.stockCritique} produit${dashboard.stockCritique > 1 ? 's' : ''}` : '—'}
               icon="⚠️"
               accentColor="#E24B4A"
             />

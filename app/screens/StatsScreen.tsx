@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import ProgressBar from '../components/ProgressBar';
-import { getVentes, getRotation } from '../services/api';
+import AlertBanner from '../components/AlertBanner';
+import { getVentes, getRotation, getFetes } from '../services/api';
 import { StatVente, RotationProduit, JourFerie } from '../types';
 
 const MOCK_VENTES: StatVente[] = Array.from({ length: 7 }, (_, i) => ({
@@ -37,7 +38,9 @@ const MOCK_FERIES: JourFerie[] = [
 export default function StatsScreen() {
   const [ventes, setVentes] = useState<StatVente[]>([]);
   const [rotation, setRotation] = useState<RotationProduit[]>([]);
+  const [feries, setFeries] = useState<JourFerie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erreur, setErreur] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -46,12 +49,22 @@ export default function StatsScreen() {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const [ventesData, rotationData] = await Promise.all([getVentes(), getRotation()]);
-      setVentes(ventesData.length > 0 ? ventesData : MOCK_VENTES);
-      setRotation(rotationData.length > 0 ? rotationData : MOCK_ROTATION);
+      const [ventesData, rotationData, feriesData] = await Promise.all([
+        getVentes(),
+        getRotation(),
+        getFetes(),
+      ]);
+      // On affiche les vraies données telles quelles (même clairsemées)
+      setVentes(ventesData);
+      setRotation(rotationData);
+      setFeries(feriesData);
+      setErreur(false);
     } catch {
+      // Repli démonstration uniquement si le serveur est injoignable
       setVentes(MOCK_VENTES);
       setRotation(MOCK_ROTATION);
+      setFeries(MOCK_FERIES);
+      setErreur(true);
     } finally {
       setLoading(false);
     }
@@ -75,9 +88,18 @@ export default function StatsScreen() {
             <Text style={styles.headerSub}>7 derniers jours</Text>
           </View>
 
+          {erreur && (
+            <View style={{ marginBottom: 12 }}>
+              <AlertBanner
+                message="Serveur injoignable — données de démonstration affichées."
+                variant="warning"
+              />
+            </View>
+          )}
+
           {/* Bar chart */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Volume de ventes (7 jours)</Text>
+            <Text style={styles.sectionTitle}>Volume commandé (7 jours)</Text>
             <View style={styles.chartCard}>
               <View style={styles.chartBars}>
                 {ventes.map((v, i) => {
@@ -99,7 +121,7 @@ export default function StatsScreen() {
                           ]}
                         />
                       </View>
-                      <Text style={styles.barLabel}>{v.date}</Text>
+                      <Text style={styles.barLabel}>{v.jour ?? v.date}</Text>
                     </View>
                   );
                 })}
@@ -111,14 +133,18 @@ export default function StatsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Rotation des produits</Text>
             <View style={styles.card}>
-              {rotation.map((r) => (
-                <ProgressBar
-                  key={r.code}
-                  label={r.article}
-                  value={r.tauxRotation}
-                  sublabel={r.categorie}
-                />
-              ))}
+              {rotation.length === 0 ? (
+                <Text style={styles.vide}>Pas encore assez de pesées pour calculer la rotation.</Text>
+              ) : (
+                rotation.map((r) => (
+                  <ProgressBar
+                    key={r.code}
+                    label={r.article}
+                    value={r.tauxRotation}
+                    sublabel={r.categorie}
+                  />
+                ))
+              )}
             </View>
           </View>
 
@@ -126,7 +152,10 @@ export default function StatsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Prochains jours fériés</Text>
             <View style={styles.card}>
-              {MOCK_FERIES.map((f) => {
+              {feries.length === 0 ? (
+                <Text style={styles.vide}>Aucun jour férié à venir enregistré.</Text>
+              ) : (
+                feries.map((f) => {
                 const d = new Date(f.date);
                 const label = d.toLocaleDateString('fr-FR', {
                   weekday: 'long',
@@ -144,7 +173,8 @@ export default function StatsScreen() {
                     </View>
                   </View>
                 );
-              })}
+                })
+              )}
             </View>
           </View>
 
@@ -237,6 +267,12 @@ const styles = StyleSheet.create({
     color: '#9A97B0',
     marginTop: 4,
     textAlign: 'center',
+  },
+  vide: {
+    fontSize: 13,
+    color: '#9A97B0',
+    textAlign: 'center',
+    paddingVertical: 8,
   },
   card: {
     backgroundColor: '#FFFFFF',

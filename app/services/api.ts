@@ -1,4 +1,4 @@
-import { Commande, StockEntree, StatVente, RotationProduit, StockHistoriqueJour } from '../types';
+import { Commande, StockEntree, StatVente, RotationProduit, StockHistoriqueJour, DashboardStats, JourFerie } from '../types';
 
 const BASE_URL = 'http://localhost:3000/api';
 
@@ -71,3 +71,9 @@ export const getVentes = (): Promise<StatVente[]> =>
 
 export const getRotation = (): Promise<RotationProduit[]> =>
   fetchJSON<RotationProduit[]>('/stats/rotation');
+
+export const getDashboard = (): Promise<DashboardStats> =>
+  fetchJSON<DashboardStats>('/stats/dashboard');
+
+export const getFetes = (): Promise<JourFerie[]> =>
+  fetchJSON<JourFerie[]>('/stats/fetes');
