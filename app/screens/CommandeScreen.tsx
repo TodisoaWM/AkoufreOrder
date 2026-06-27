@@ -21,7 +21,7 @@ import {
   formatDate,
   formatDateLong,
 } from '../services/algorithm';
-import { saveCommande } from '../services/api';
+import { saveCommande, calculerSuggestion } from '../services/api';
 import { TabName } from '../types';
 import { formatKg } from '../services/format';
 
@@ -42,6 +42,9 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [feedback, setFeedback] = useState<{ variant: 'success' | 'error' | 'warning'; message: string } | null>(null);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(true);
+  // true = basé sur les vraies pesées (backend), false = repli démo local
+  const [sourceReelle, setSourceReelle] = useState<boolean>(true);
   // Date de livraison ciblée — par défaut la prochaine livraison régulière
   const [dateLivraison, setDateLivraison] = useState<Date>(() => getPeriodeInfo(new Date()).dateLivraison);
 
@@ -68,9 +71,8 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
     setBases(initial);
   }, []);
 
-  // Recalcule les quantités suggérées quand la date de livraison (donc la période) change
-  useEffect(() => {
-    if (Object.keys(bases).length === 0) return;
+  // Repli local (démo) quand le backend est injoignable
+  const calculerLocal = () => {
     const qty: Record<string, number> = {};
     const hints: Record<string, string> = {};
     PRODUITS.forEach((p) => {
@@ -88,8 +90,43 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
     });
     setQuantities(qty);
     setFormulaHints(hints);
+  };
+
+  // Charge la suggestion RÉELLE depuis le backend (vraies pesées + moyenne hybride)
+  // à chaque changement de date de livraison ; repli sur le calcul local en cas d'échec.
+  useEffect(() => {
+    let annule = false;
+    const charger = async () => {
+      setLoadingSuggestion(true);
+      try {
+        const sugg = await calculerSuggestion(dateLivraison.toISOString());
+        if (annule) return;
+        const qty: Record<string, number> = {};
+        const hints: Record<string, string> = {};
+        const fmt = (n: number) => formatKg(n);
+        sugg.lignes.forEach((l) => {
+          qty[l.code] = l.quantite;
+          hints[l.code] =
+            `Moy/j ${fmt(l.moyenneJour)} · ×${l.coefficient} · ${sugg.joursACouvrir}j · −${fmt(l.stockActuel)} stock`;
+        });
+        setQuantities(qty);
+        setFormulaHints(hints);
+        setSourceReelle(true);
+      } catch {
+        if (annule) return;
+        // Backend injoignable → données de démonstration locales
+        if (Object.keys(bases).length > 0) calculerLocal();
+        setSourceReelle(false);
+      } finally {
+        if (!annule) setLoadingSuggestion(false);
+      }
+    };
+    charger();
+    return () => {
+      annule = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bases, periodeInfo.coefficient, periodeInfo.joursACouvrir]);
+  }, [dateLivraison, bases]);
 
   const handleChangeValue = (code: string, value: number) => {
     setQuantities((prev) => ({ ...prev, [code]: value }));
@@ -206,6 +243,14 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
         />
 
         {feedback && <AlertBanner message={feedback.message} variant={feedback.variant} />}
+
+        {loadingSuggestion ? (
+          <AlertBanner message="Calcul de la suggestion en cours…" variant="info" icon="⏳" />
+        ) : sourceReelle ? (
+          <AlertBanner message="Suggestion basée sur vos vraies pesées (moyenne ajustée par l'historique)." variant="success" icon="📊" />
+        ) : (
+          <AlertBanner message="Serveur injoignable — suggestion de démonstration. Démarrez le backend pour le calcul réel." variant="warning" />
+        )}
 
         {categories.map((cat, index) => (
           <CategoryAccordion

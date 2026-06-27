@@ -25,8 +25,8 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.post('/calculer', async (req: Request, res: Response) => {
   try {
-    const dateCommande = req.body.date ? new Date(req.body.date) : new Date();
-    const suggestion = await calculerSuggestion(dateCommande);
+    const dateLivraison = req.body.dateLivraison ? new Date(req.body.dateLivraison) : undefined;
+    const suggestion = await calculerSuggestion(dateLivraison);
     res.json(suggestion);
   } catch (e) {
     res.status(500).json({ erreur: 'Erreur lors du calcul de la suggestion' });

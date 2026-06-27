@@ -1,4 +1,4 @@
-import { Commande, StockEntree, StatVente, RotationProduit, SuggestionCommande, StockHistoriqueJour } from '../types';
+import { Commande, StockEntree, StatVente, RotationProduit, StockHistoriqueJour } from '../types';
 
 const BASE_URL = 'http://localhost:3000/api';
 
@@ -37,10 +37,32 @@ export const saveCommande = (commande: Omit<Commande, 'id'>): Promise<Commande> 
     body: JSON.stringify(commande),
   });
 
-export const calculerSuggestion = (stock: Record<string, number>): Promise<SuggestionCommande> =>
-  fetchJSON<SuggestionCommande>('/commande/calculer', {
+export interface SuggestionLigne {
+  produitId: number;
+  code: string;
+  article: string;
+  categorie: string;
+  quantite: number;
+  stockActuel: number;
+  moyenneJour: number;
+  stockSecurite: number;
+  coefficient: number;
+}
+
+export interface SuggestionResponse {
+  lignes: SuggestionLigne[];
+  totalUnites: number;
+  coefficient: number;
+  joursACouvrir: number;
+  label: string;
+  dateLivraison: string;
+}
+
+// Suggestion calculée par le backend à partir des vraies pesées (moyenne hybride).
+export const calculerSuggestion = (dateLivraison: string): Promise<SuggestionResponse> =>
+  fetchJSON<SuggestionResponse>('/commande/calculer', {
     method: 'POST',
-    body: JSON.stringify({ stock }),
+    body: JSON.stringify({ dateLivraison }),
   });
 
 // Stats
