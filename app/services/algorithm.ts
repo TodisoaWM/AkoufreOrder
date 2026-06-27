@@ -1,11 +1,43 @@
 /**
- * Algorithm: quantiteCommande = (moyenneJournaliere × joursACouvrir × coefficientPeriode) - stockActuel + stockSecurite
+ * Algorithme : quantiteCommande = (moyenneJournaliere × joursACouvrir × coefficientPeriode) - stockActuel + stockSecurite
  *
- * Coefficients:
- *   Mardi/Jeudi → ×1.0 (1 jour)
- *   Vendredi   → ×1.5 (3 jours: ven+sam+dim+lun)
- *   Veille fête → ×2.0
+ * Livraison / approvisionnement uniquement les LUNDI, MERCREDI, VENDREDI.
+ * Rythme de commande :
+ *   - Lundi & mercredi : commande passée la veille au soir (pesage fin de journée).
+ *   - Vendredi (week-end) : commande passée le vendredi matin même.
+ * On considère donc le jour courant comme livraison possible s'il tombe un
+ * jour de livraison ; sinon on prend le prochain jour de livraison.
+ *
+ * Couverture (échoppe ouverte 7j/7, dimanche compris) :
+ *   Livraison lundi    → couvre lun + mar           = 2 jours, ×1.0
+ *   Livraison mercredi → couvre mer + jeu           = 2 jours, ×1.0
+ *   Livraison vendredi → couvre ven + sam + dim     = 3 jours, ×1.5 (week-end)
+ *   Veille de fête     → ×2.0
+ *
+ * (Un approvisionnement exceptionnel hors Lun/Mer/Ven reste possible mais rare.)
  */
+
+// Jours de livraison : 1=lundi, 3=mercredi, 5=vendredi
+const JOURS_LIVRAISON = [1, 3, 5];
+
+function prochaineLivraison(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(12, 0, 0, 0);
+  // Inclut le jour courant (ex : commande du vendredi matin → livraison vendredi)
+  while (!JOURS_LIVRAISON.includes(d.getDay())) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+function livraisonSuivante(livraison: Date): Date {
+  const d = new Date(livraison);
+  d.setDate(d.getDate() + 1);
+  while (!JOURS_LIVRAISON.includes(d.getDay())) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
 
 export interface AlgorithmInput {
   moyenneJournaliere: number;
@@ -23,8 +55,9 @@ export interface AlgorithmResult {
 export function calculerQuantite(input: AlgorithmInput): AlgorithmResult {
   const { moyenneJournaliere, stockActuel, stockSecurite, coefficient, joursACouvrir } = input;
   const brut = moyenneJournaliere * joursACouvrir * coefficient;
-  const quantite = Math.max(0, Math.round(brut - stockActuel + stockSecurite));
-  const formulaHint = `Moy/j ${Math.round(moyenneJournaliere)} · ×${coefficient} = ${Math.round(brut)} · −${stockActuel} stock`;
+  const quantite = Math.max(0, Math.round((brut - stockActuel + stockSecurite) * 100) / 100);
+  const arrondi = (n: number) => Math.round(n * 100) / 100;
+  const formulaHint = `Moy/j ${arrondi(moyenneJournaliere)} · ×${coefficient} · ${joursACouvrir}j = ${arrondi(brut)} · −${arrondi(stockActuel)} stock`;
   return { quantite, formulaHint };
 }
 
@@ -36,40 +69,22 @@ export interface PeriodeInfo {
 }
 
 export function getPeriodeInfo(date: Date, veilleFete: boolean = false): PeriodeInfo {
+  const livraison = prochaineLivraison(date);
+  const suivante = livraisonSuivante(livraison);
+  const joursACouvrir = Math.round((suivante.getTime() - livraison.getTime()) / 86400000);
+
+  // La livraison du vendredi couvre le week-end (ven + sam + dim) → demande plus forte
+  const couvreWeekend = livraison.getDay() === 5;
+
+  let coefficient = couvreWeekend ? 1.5 : 1.0;
+  let label = couvreWeekend ? 'Week-end ×1.5' : 'Standard ×1.0';
+
   if (veilleFete) {
-    const livraison = new Date(date);
-    livraison.setDate(livraison.getDate() + 1);
-    return {
-      coefficient: 2.0,
-      joursACouvrir: 1,
-      label: 'Veille fête ×2.0',
-      dateLivraison: livraison,
-    };
+    coefficient = 2.0;
+    label = 'Veille fête ×2.0';
   }
 
-  const dayOfWeek = date.getDay(); // 0=dim, 1=lun, 2=mar, 3=mer, 4=jeu, 5=ven, 6=sam
-
-  if (dayOfWeek === 5) {
-    // Vendredi: couvre ven+sam+dim+lun = 4 jours, coeff ×1.5
-    const livraison = new Date(date);
-    livraison.setDate(livraison.getDate() + 3); // livraison lundi
-    return {
-      coefficient: 1.5,
-      joursACouvrir: 4,
-      label: 'Week-end ×1.5',
-      dateLivraison: livraison,
-    };
-  }
-
-  // Mardi ou Jeudi (jours de commande standards)
-  const livraison = new Date(date);
-  livraison.setDate(livraison.getDate() + 1);
-  return {
-    coefficient: 1.0,
-    joursACouvrir: 1,
-    label: 'Standard ×1.0',
-    dateLivraison: livraison,
-  };
+  return { coefficient, joursACouvrir, label, dateLivraison: livraison };
 }
 
 export function formatDate(date: Date): string {
