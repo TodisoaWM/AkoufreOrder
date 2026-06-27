@@ -15,6 +15,7 @@ import AlertBanner from '../components/AlertBanner';
 import { getCategories, getProduitsByCategorie } from '../data/produits';
 import { saveStock, getHistoriqueStock } from '../services/api';
 import { TabName, StockHistoriqueJour } from '../types';
+import { formatKg } from '../services/format';
 
 interface StockScreenProps {
   onNavigate: (tab: TabName) => void;
@@ -27,6 +28,12 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
   const [histoLoading, setHistoLoading] = useState(false);
   const [historique, setHistorique] = useState<StockHistoriqueJour[]>([]);
   const [jourOuvert, setJourOuvert] = useState<string | null>(null);
+  // Date du stock — pré-remplie avec aujourd'hui, modifiable (ex : pesage fait le lendemain)
+  const [stockDate, setStockDate] = useState(() => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0); // midi pour éviter les soucis de fuseau horaire
+    return d;
+  });
 
   const categories = getCategories();
 
@@ -56,12 +63,31 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
     setStockValues((prev) => ({ ...prev, [code]: value }));
   };
 
-  const today = new Date().toLocaleDateString('fr-FR', {
+  const stockDateLabel = stockDate.toLocaleDateString('fr-FR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
+
+  // Vrai si la date sélectionnée est aujourd'hui (empêche d'aller dans le futur)
+  const estAujourdhui = (() => {
+    const t = new Date();
+    return (
+      stockDate.getFullYear() === t.getFullYear() &&
+      stockDate.getMonth() === t.getMonth() &&
+      stockDate.getDate() === t.getDate()
+    );
+  })();
+
+  const decalerDate = (jours: number) => {
+    setStockDate((prev) => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + jours);
+      d.setHours(12, 0, 0, 0);
+      return d;
+    });
+  };
 
   const handleCalculer = async () => {
     const entries = Object.entries(stockValues)
@@ -69,7 +95,7 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
       .map(([code, quantite]) => ({
         produitCode: code,
         quantite,
-        date: new Date().toISOString(),
+        date: stockDate.toISOString(),
       }));
 
     if (entries.length === 0) {
@@ -104,12 +130,34 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Stock fin de journée</Text>
-            <Text style={styles.headerDate}>{today}</Text>
           </View>
           <TouchableOpacity style={styles.histoBtn} onPress={ouvrirHistorique} activeOpacity={0.8}>
             <Text style={styles.histoBtnIcon}>🕑</Text>
             <Text style={styles.histoBtnText}>Historique</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Sélecteur de date du stock */}
+        <View style={styles.dateSelector}>
+          <Text style={styles.dateSelectorLabel}>Date du stock</Text>
+          <View style={styles.dateSelectorControls}>
+            <TouchableOpacity
+              style={styles.dateArrow}
+              onPress={() => decalerDate(-1)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.dateArrowText}>◀</Text>
+            </TouchableOpacity>
+            <Text style={styles.dateValue}>{stockDateLabel}</Text>
+            <TouchableOpacity
+              style={[styles.dateArrow, estAujourdhui && styles.dateArrowDisabled]}
+              onPress={() => decalerDate(1)}
+              activeOpacity={0.7}
+              disabled={estAujourdhui}
+            >
+              <Text style={[styles.dateArrowText, estAujourdhui && styles.dateArrowTextDisabled]}>▶</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <AlertBanner
@@ -186,7 +234,7 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
                       <View style={styles.jourInfo}>
                         <Text style={styles.jourDate}>{formatJour(jour.date)}</Text>
                         <Text style={styles.jourMeta}>
-                          {jour.lignes.length} produit{jour.lignes.length > 1 ? 's' : ''} · {jour.total} unités
+                          {jour.lignes.length} produit{jour.lignes.length > 1 ? 's' : ''} · {formatKg(jour.total)} kg
                         </Text>
                       </View>
                       <Text style={styles.jourChevron}>{ouvert ? '▲' : '▼'}</Text>
@@ -199,7 +247,7 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
                             <Text style={styles.ligneArticle}>{ligne.article}</Text>
                             <Text style={styles.ligneCode}>{ligne.code}</Text>
                           </View>
-                          <Text style={styles.ligneQty}>{ligne.quantite}</Text>
+                          <Text style={styles.ligneQty}>{formatKg(ligne.quantite)} kg</Text>
                         </View>
                       ))}
                   </View>
@@ -290,6 +338,58 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  dateSelector: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dateSelectorLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9A97B0',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 6,
+  },
+  dateSelectorControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F0EEF8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateArrowDisabled: {
+    backgroundColor: '#F7F6FC',
+  },
+  dateArrowText: {
+    fontSize: 14,
+    color: '#7F77DD',
+    fontWeight: '700',
+  },
+  dateArrowTextDisabled: {
+    color: '#D8D5E8',
+  },
+  dateValue: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1a1a2e',
+    textTransform: 'capitalize',
   },
   histoBtn: {
     flexDirection: 'row',

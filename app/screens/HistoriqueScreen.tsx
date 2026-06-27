@@ -14,6 +14,7 @@ import HistoryRow from '../components/HistoryRow';
 import StatusBadge from '../components/StatusBadge';
 import { Commande } from '../types';
 import { getCommandes } from '../services/api';
+import { formatKg } from '../services/format';
 
 interface HistoriqueScreenProps {}
 
@@ -148,7 +149,7 @@ export default function HistoriqueScreen(_props: HistoriqueScreenProps) {
                 </View>
                 <View style={styles.modalMetaRow}>
                   <Text style={styles.metaLabel}>Total</Text>
-                  <Text style={[styles.metaValue, styles.metaTotal]}>{selected.totalUnites} unités</Text>
+                  <Text style={[styles.metaValue, styles.metaTotal]}>{formatKg(selected.totalUnites)} kg</Text>
                 </View>
               </View>
 
@@ -162,7 +163,7 @@ export default function HistoriqueScreen(_props: HistoriqueScreenProps) {
                     <Text style={styles.ligneArticle}>{ligne.produit.article}</Text>
                     <Text style={styles.ligneCode}>{ligne.produit.code}</Text>
                   </View>
-                  <Text style={styles.ligneQty}>{ligne.quantite}</Text>
+                  <Text style={styles.ligneQty}>{formatKg(ligne.quantite)} kg</Text>
                 </View>
               ))}
             </ScrollView>

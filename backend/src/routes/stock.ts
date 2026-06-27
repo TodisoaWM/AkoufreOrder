@@ -23,7 +23,9 @@ router.get('/historique', async (_req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { entrees } = req.body as { entrees: { produitId: number; quantite: number }[] };
+    const { entrees } = req.body as {
+      entrees: { produitCode: string; quantite: number; date?: string }[];
+    };
     if (!Array.isArray(entrees) || entrees.length === 0) {
       return res.status(400).json({ erreur: 'Données invalides' });
     }

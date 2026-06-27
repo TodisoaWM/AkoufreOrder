@@ -23,7 +23,7 @@ model StockEntree {
   id        Int      @id @default(autoincrement())
   produit   Produit  @relation(fields: [produitId], references: [id])
   produitId Int
-  quantite  Int
+  quantite  Float
   date      DateTime @default(now())
 }
 
@@ -33,7 +33,7 @@ model Commande {
   dateLivraison DateTime
   statut        String          @default("Soumis")
   coefficient   Float           @default(1.0)
-  totalUnites   Int             @default(0)
+  totalUnites   Float           @default(0)
   lignes        LigneCommande[]
 }
 
@@ -43,8 +43,8 @@ model LigneCommande {
   commandeId Int
   produit    Produit  @relation(fields: [produitId], references: [id])
   produitId  Int
-  quantite   Int
-  stock      Int      @default(0)
+  quantite   Float
+  stock      Float    @default(0)
 }
 
 model JourFerie {

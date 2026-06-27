@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { formatKg } from '../services/format';
 
 interface SummaryCardProps {
   totalUnites: number;
@@ -18,7 +19,7 @@ export default function SummaryCard({
     <View style={styles.card}>
       <View style={styles.row}>
         <View>
-          <Text style={styles.units}>{totalUnites} unités</Text>
+          <Text style={styles.units}>{formatKg(totalUnites)} kg</Text>
           <Text style={styles.livraison}>Livraison {dateLivraison}</Text>
         </View>
         <View style={styles.badge}>

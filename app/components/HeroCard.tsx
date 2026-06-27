@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { formatKg } from '../services/format';
 
 interface HeroCardProps {
   totalUnites: number;
@@ -15,7 +16,7 @@ export default function HeroCard({ totalUnites, labelPeriode, dateLivraison, coe
   return (
     <View style={styles.card}>
       <Text style={styles.nextLabel}>Prochaine commande</Text>
-      <Text style={styles.units}>{totalUnites} unités suggérées</Text>
+      <Text style={styles.units}>{formatKg(totalUnites)} kg suggérés</Text>
       <View style={styles.pills}>
         <View style={[styles.pill, styles.pillOrange]}>
           <Text style={styles.pillTextOrange}>

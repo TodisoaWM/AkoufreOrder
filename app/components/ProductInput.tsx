@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Produit } from '../types';
+import { formatKg } from '../services/format';
 
 interface ProductInputProps {
   produit: Produit;
@@ -17,8 +18,33 @@ export default function ProductInput({
   formulaHint,
   accentColor = '#7F77DD',
 }: ProductInputProps) {
-  const handleChange = (text: string) => {
-    const parsed = parseInt(text.replace(/[^0-9]/g, ''), 10);
+  // État texte local pour permettre la saisie fluide de décimales (« 0, », « 1,2 »…)
+  const [text, setText] = useState(value === 0 ? '' : formatKg(value));
+
+  // Synchronise si la valeur change depuis l'extérieur (ex : suggestion calculée)
+  useEffect(() => {
+    const parsedLocal = parseFloat(text.replace(',', '.'));
+    if (value !== (isNaN(parsedLocal) ? 0 : parsedLocal)) {
+      setText(value === 0 ? '' : formatKg(value));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const handleChange = (raw: string) => {
+    // On autorise chiffres + un seul séparateur décimal (, ou .)
+    let cleaned = raw.replace(/[^0-9.,]/g, '').replace(/\./g, ',');
+    const parts = cleaned.split(',');
+    if (parts.length > 2) {
+      cleaned = parts[0] + ',' + parts.slice(1).join('');
+    }
+    // Maximum 2 décimales
+    const [entier, dec] = cleaned.split(',');
+    if (dec !== undefined) {
+      cleaned = entier + ',' + dec.slice(0, 2);
+    }
+
+    setText(cleaned);
+    const parsed = parseFloat(cleaned.replace(',', '.'));
     onChangeValue(produit.code, isNaN(parsed) ? 0 : parsed);
   };
 
@@ -34,14 +60,15 @@ export default function ProductInput({
       <View style={[styles.inputWrapper, { borderColor: accentColor }]}>
         <TextInput
           style={styles.input}
-          value={value === 0 ? '' : String(value)}
+          value={text}
           onChangeText={handleChange}
-          keyboardType="number-pad"
+          keyboardType="decimal-pad"
           placeholder="0"
           placeholderTextColor="#BCBAC8"
-          maxLength={5}
+          maxLength={7}
           selectTextOnFocus
         />
+        <Text style={styles.unit}>kg</Text>
       </View>
     </View>
   );
@@ -78,17 +105,27 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1.5,
     borderRadius: 10,
-    width: 72,
+    width: 86,
     height: 40,
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
   input: {
+    flex: 1,
     fontSize: 16,
     fontWeight: '700',
     color: '#1a1a2e',
-    textAlign: 'center',
+    textAlign: 'right',
+    padding: 0,
+  },
+  unit: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9A97B0',
+    marginLeft: 4,
   },
 });

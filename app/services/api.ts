@@ -21,10 +21,10 @@ export const getDernierStock = (): Promise<Record<string, number>> =>
 export const getHistoriqueStock = (): Promise<StockHistoriqueJour[]> =>
   fetchJSON<StockHistoriqueJour[]>('/stock/historique');
 
-export const saveStock = (entries: StockEntree[]): Promise<{ success: boolean }> =>
-  fetchJSON<{ success: boolean }>('/stock', {
+export const saveStock = (entrees: StockEntree[]): Promise<{ succes: boolean; count: number }> =>
+  fetchJSON<{ succes: boolean; count: number }>('/stock', {
     method: 'POST',
-    body: JSON.stringify({ entries }),
+    body: JSON.stringify({ entrees }),
   });
 
 // Commandes

@@ -15,6 +15,7 @@ import { getCategories, getProduitsByCategorie, PRODUITS } from '../data/produit
 import { calculerQuantite, getPeriodeInfo, formatDate } from '../services/algorithm';
 import { saveCommande } from '../services/api';
 import { TabName } from '../types';
+import { formatKg } from '../services/format';
 
 interface CommandeScreenProps {
   onNavigate: (tab: TabName) => void;
@@ -62,7 +63,7 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
   const handleValider = async () => {
     Alert.alert(
       'Confirmer la commande',
-      `Envoyer ${totalUnites} unités sur AkoufréNET ?`,
+      `Envoyer ${formatKg(totalUnites)} kg sur AkoufréNET ?`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -145,7 +146,7 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
       <View style={styles.bottomBar}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{totalUnites} unités</Text>
+          <Text style={styles.totalValue}>{formatKg(totalUnites)} kg</Text>
         </View>
         <TouchableOpacity
           style={[styles.sendButton, loading && styles.sendButtonDisabled]}

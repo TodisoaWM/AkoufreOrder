@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Commande } from '../types';
 import StatusBadge from './StatusBadge';
+import { formatKg } from '../services/format';
 
 interface HistoryRowProps {
   commande: Commande;
@@ -30,7 +31,7 @@ export default function HistoryRow({ commande, onPress }: HistoryRowProps) {
       <View style={styles.info}>
         <Text style={styles.title}>Commande du {formatDate(dateCommande)}</Text>
         <Text style={styles.subtitle}>
-          Livraison {formatDate(dateLivraison)} · {commande.totalUnites} unités
+          Livraison {formatDate(dateLivraison)} · {formatKg(commande.totalUnites)} kg
         </Text>
         <Text style={styles.coeff}>Coeff ×{commande.coefficient}</Text>
       </View>

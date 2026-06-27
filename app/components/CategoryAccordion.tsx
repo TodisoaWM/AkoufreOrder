@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Produit } from '../types';
 import { CATEGORY_COLORS } from '../data/produits';
 import ProductInput from './ProductInput';
+import { formatKg } from '../services/format';
 
 interface CategoryAccordionProps {
   categorie: string;
@@ -38,7 +39,7 @@ export default function CategoryAccordion({
         <View style={styles.right}>
           {totalCategory > 0 && (
             <View style={[styles.badge, { backgroundColor: accentColor }]}>
-              <Text style={styles.badgeText}>{totalCategory}</Text>
+              <Text style={styles.badgeText}>{formatKg(totalCategory)} kg</Text>
             </View>
           )}
           <Text style={[styles.chevron, { color: accentColor }]}>{isOpen ? '▲' : '▼'}</Text>
