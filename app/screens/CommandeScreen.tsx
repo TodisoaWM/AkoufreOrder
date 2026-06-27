@@ -272,7 +272,7 @@ export default function CommandeScreen({ onNavigate }: CommandeScreenProps) {
         ) : sourceReelle ? (
           <AlertBanner message="Suggestion basée sur vos vraies pesées (moyenne ajustée par l'historique)." variant="success" icon="📊" />
         ) : (
-          <AlertBanner message="Serveur injoignable — suggestion de démonstration. Démarrez le backend pour le calcul réel." variant="warning" />
+          <AlertBanner message="Serveur injoignable — suggestion de démonstration. Démarrez le serveur pour le calcul réel." variant="warning" />
         )}
 
         {categories.map((cat, index) => (

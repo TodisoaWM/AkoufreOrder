@@ -80,7 +80,7 @@ export default function HistoriqueScreen(_props: HistoriqueScreenProps) {
               <Text style={styles.emptyIcon}>{erreur ? '📡' : '📋'}</Text>
               <Text style={styles.emptyText}>
                 {erreur
-                  ? 'Serveur injoignable — démarrez le backend.'
+                  ? 'Serveur injoignable — démarrez le serveur.'
                   : 'Aucune commande enregistrée pour le moment.'}
               </Text>
             </View>

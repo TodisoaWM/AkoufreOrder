@@ -72,8 +72,20 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
       >
         {/* Hero zone — scrolls with content */}
         <View style={styles.hero}>
-          <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.shopName}>Akoufré Ambanidia — Echoppe</Text>
+          <View style={styles.heroTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.greeting}>Bonjour,</Text>
+              <Text style={styles.shopName}>Akoufré Ambanidia — Echoppe</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.refreshBtn}
+              onPress={onRefresh}
+              activeOpacity={0.8}
+              disabled={refreshing}
+            >
+              <Text style={styles.refreshBtnText}>{refreshing ? '…' : '🔄'}</Text>
+            </TouchableOpacity>
+          </View>
           <HeroCard
             totalUnites={heroTotal ?? 0}
             labelPeriode={periodeInfo.label}
@@ -84,7 +96,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
 
         {erreur && (
           <AlertBanner
-            message="Serveur injoignable — démarrez le backend pour voir vos vraies données."
+            message="Serveur injoignable — démarrez le serveur pour voir vos vraies données."
             variant="warning"
           />
         )}
@@ -168,6 +180,22 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  refreshBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refreshBtnText: {
+    fontSize: 16,
   },
   greeting: {
     color: 'rgba(255,255,255,0.5)',

@@ -213,15 +213,11 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
           </View>
         </View>
 
-        {feedback ? (
-          <AlertBanner message={feedback.message} variant={feedback.variant} />
-        ) : (
-          <AlertBanner
-            message="Saisissez les quantités restantes en stock."
-            variant="info"
-            icon="📝"
-          />
-        )}
+        <AlertBanner
+          message="Saisissez les quantités restantes en stock."
+          variant="info"
+          icon="📝"
+        />
 
         {categories.map((cat, index) => (
           <CategoryAccordion
@@ -240,6 +236,11 @@ export default function StockScreen({ onNavigate }: StockScreenProps) {
 
       {/* Boutons fixes en bas */}
       <View style={styles.bottomBar}>
+        {feedback && (
+          <View style={{ marginBottom: 10 }}>
+            <AlertBanner message={feedback.message} variant={feedback.variant} />
+          </View>
+        )}
         <TouchableOpacity
           style={[styles.calcButton, loading && styles.calcButtonDisabled]}
           onPress={handleEnregistrer}
