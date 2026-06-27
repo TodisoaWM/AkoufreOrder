@@ -18,48 +18,10 @@ import { formatKg } from '../services/format';
 
 interface HistoriqueScreenProps {}
 
-const MOCK_COMMANDES: Commande[] = [
-  {
-    id: 1,
-    dateCommande: new Date(Date.now() - 3 * 86400000).toISOString(),
-    dateLivraison: new Date(Date.now() - 2 * 86400000).toISOString(),
-    statut: 'Soumis',
-    coefficient: 1.0,
-    totalUnites: 287,
-    lignes: [],
-  },
-  {
-    id: 2,
-    dateCommande: new Date(Date.now() - 6 * 86400000).toISOString(),
-    dateLivraison: new Date(Date.now() - 3 * 86400000).toISOString(),
-    statut: 'Modifiée',
-    coefficient: 1.5,
-    totalUnites: 412,
-    lignes: [],
-  },
-  {
-    id: 3,
-    dateCommande: new Date(Date.now() - 9 * 86400000).toISOString(),
-    dateLivraison: new Date(Date.now() - 8 * 86400000).toISOString(),
-    statut: 'Manqué',
-    coefficient: 1.0,
-    totalUnites: 0,
-    lignes: [],
-  },
-  {
-    id: 4,
-    dateCommande: new Date(Date.now() - 10 * 86400000).toISOString(),
-    dateLivraison: new Date(Date.now() - 9 * 86400000).toISOString(),
-    statut: 'Soumis',
-    coefficient: 1.0,
-    totalUnites: 301,
-    lignes: [],
-  },
-];
-
 export default function HistoriqueScreen(_props: HistoriqueScreenProps) {
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erreur, setErreur] = useState(false);
   const [selected, setSelected] = useState<Commande | null>(null);
 
   useEffect(() => {
@@ -70,9 +32,11 @@ export default function HistoriqueScreen(_props: HistoriqueScreenProps) {
     setLoading(true);
     try {
       const data = await getCommandes();
-      setCommandes(data.length > 0 ? data : MOCK_COMMANDES);
+      setCommandes(data);
+      setErreur(false);
     } catch {
-      setCommandes(MOCK_COMMANDES);
+      setCommandes([]);
+      setErreur(true);
     } finally {
       setLoading(false);
     }
@@ -106,13 +70,19 @@ export default function HistoriqueScreen(_props: HistoriqueScreenProps) {
           ListHeaderComponent={
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Historique</Text>
-              <Text style={styles.headerSub}>{commandes.length} commandes</Text>
+              <Text style={styles.headerSub}>
+                {commandes.length} commande{commandes.length > 1 ? 's' : ''}
+              </Text>
             </View>
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>📋</Text>
-              <Text style={styles.emptyText}>Aucune commande enregistrée.</Text>
+              <Text style={styles.emptyIcon}>{erreur ? '📡' : '📋'}</Text>
+              <Text style={styles.emptyText}>
+                {erreur
+                  ? 'Serveur injoignable — démarrez le backend.'
+                  : 'Aucune commande enregistrée pour le moment.'}
+              </Text>
             </View>
           }
           ListFooterComponent={<View style={{ height: 16 }} />}
