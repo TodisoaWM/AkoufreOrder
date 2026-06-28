@@ -1,6 +1,35 @@
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { Commande, StockEntree, StatVente, RotationProduit, StockHistoriqueJour, DashboardStats, JourFerie } from '../types';
 
-const BASE_URL = 'http://localhost:3000/api';
+// Port du serveur backend
+const BACKEND_PORT = 3000;
+
+// Détermine l'adresse du backend selon la plateforme.
+// - Sur le web : localhost (même machine que le navigateur).
+// - Sur un téléphone (Expo Go) : « localhost » désignerait le téléphone lui-même,
+//   donc on récupère automatiquement l'IP du PC qui fait tourner Expo.
+function resolveBaseUrl(): string {
+  if (Platform.OS === 'web') {
+    return `http://localhost:${BACKEND_PORT}/api`;
+  }
+  // hostUri ressemble à "192.168.1.10:8081" en développement Expo
+  const hostUri =
+    Constants.expoConfig?.hostUri ||
+    // @ts-ignore — champs de repli selon la version d'Expo
+    (Constants.manifest2 as any)?.extra?.expoGo?.developer?.host ||
+    // @ts-ignore
+    (Constants.manifest as any)?.debuggerHost;
+
+  const host = typeof hostUri === 'string' ? hostUri.split(':')[0] : undefined;
+  if (host) {
+    return `http://${host}:${BACKEND_PORT}/api`;
+  }
+  // Repli (build de production : à remplacer par l'URL réelle du serveur déployé)
+  return `http://localhost:${BACKEND_PORT}/api`;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
