@@ -1,0 +1,10 @@
+{
+  "name": "akoufre-order",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "backend": "cd backend && npm run dev",
+    "app": "cd app && npx expo start",
+    "backend:setup": "cd backend && npm install && npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed"
+  }
+}
